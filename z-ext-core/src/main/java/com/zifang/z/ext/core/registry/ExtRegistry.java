@@ -54,6 +54,24 @@ public class ExtRegistry {
     }
 
     /**
+     * 按扩展点接口类查找扩展点定义
+     * <p>
+     * 扩展点标识（point key）是业务侧的自由文本，调用方常常只握有接口 Class 本身，
+     * 这里按 interfaceClass 反查，找不到返回 null。
+     */
+    public static ExtPointDefinition getPointByInterface(Class<?> interfaceClass) {
+        if (interfaceClass == null) {
+            return null;
+        }
+        for (ExtPointDefinition definition : EXT_POINT_REGISTRY.values()) {
+            if (interfaceClass.equals(definition.getInterfaceClass())) {
+                return definition;
+            }
+        }
+        return null;
+    }
+
+    /**
      * 获取所有扩展点
      */
     public static Map<String, ExtPointDefinition> getAllPoints() {
@@ -82,9 +100,12 @@ public class ExtRegistry {
 
     /**
      * 获取扩展点的所有实现
+     * <p>
+     * 扩展点没有任何实现时返回空列表，而不是 null（调用方不必为「未注册的 point」额外兜底）。
      */
     public static List<ExtImplDefinition> getImplementations(String point) {
-        return new ArrayList<>(EXT_IMPL_REGISTRY.get(point));
+        List<ExtImplDefinition> impls = EXT_IMPL_REGISTRY.get(point);
+        return impls == null ? new ArrayList<ExtImplDefinition>() : new ArrayList<>(impls);
     }
 
     /**

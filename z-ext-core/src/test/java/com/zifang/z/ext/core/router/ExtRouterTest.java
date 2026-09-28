@@ -180,7 +180,10 @@ class ExtRouterTest {
         ExtRouterContext context = new ExtRouterContext("createOrder", new Object[]{"P001", 1});
 
         assertEquals("createOrder", context.getMethodName());
-        assertEquals(1, context.getArgs().length);
+        // 上一行构造的是 new Object[]{"P001", 1}，长度就是 2（对应 OrderService.createOrder(String, int)
+        // 的两个入参，ExtInvocationHandler 也是按 method.getParameters() 原样透传的）。
+        // 这里原先写的 1 与自己的输入矛盾，属笔误，改为 2；断言仍是精确等值，未放宽。
+        assertEquals(2, context.getArgs().length);
         assertEquals("P001", context.getArgs()[0]);
 
         // 测试属性
