@@ -29,7 +29,9 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.65.Final</version>
+            <!-- 2026-09-28「同坐标单版本」：原钉 4.1.65.Final，抬到 z-boot-dependencies 1.0.18
+                 的 netty-bom 口径 4.1.138.Final。z-opc 一个 reactor 里曾因各仓各钉一份解析出 3 套 netty。 -->
+            <version>4.1.138.Final</version>
         </dependency>
 
         <!-- z-rpc-core 依赖 -->
