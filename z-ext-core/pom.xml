@@ -41,6 +41,18 @@
                 <version>${project.version}</version>
         </dependency>
 
+        <!-- z-util-core (com.zifang.util.core.lang.RandomUtil — ZRpcExtInvoker 生成 requestId)。
+             此前靠 com.zifang:z-rpc-core 的传递依赖漏进来；z-rpc-core 已安装的 pom 现在无效
+             ('dependencies.dependency.version' missing for z-config-client / z-config-common)，
+             Maven 直接丢弃它的全部传递依赖，泄漏断掉 → 按 z-lc 9014d38 口径显式声明主线坐标。
+             jar 实测：io.github.yuku123:z-util-core:1.0.13 内 RandomUtil 的全限定名仍是
+             com.zifang.util.core.lang.RandomUtil，且 520 个 class 的 bytecode major version 全为 52（Java 8）。 -->
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-util-core</artifactId>
+            <version>${util.version}</version>
+        </dependency>
+
         <!-- Jackson for JSON -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
