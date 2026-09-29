@@ -29,16 +29,19 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <!-- 2026-09-28「同坐标单版本」：原钉 4.1.65.Final，抬到 z-boot-dependencies 1.0.18
-                 的 netty-bom 口径 4.1.138.Final。z-opc 一个 reactor 里曾因各仓各钉一份解析出 3 套 netty。 -->
-            <version>4.1.138.Final</version>
+            <!-- 2026-09-29 迁入统一 parent：这里原本写字面 4.1.138.Final（2026-09-28 从 4.1.65.Final
+                 抬上来的那一格），而 parent 的父级 z-boot-dependencies 就是 import
+                 io.netty:netty-bom:4.1.138.Final 供同一面值（repo1 回读实测）⇒ 版本删掉、由 DM 下发，
+                 面值零漂移。字面版本留在模块里会压过仓根 DM 的一切写法（README「消费模型」步骤 3）。 -->
         </dependency>
 
         <!-- z-rpc-core 依赖 -->
         <dependency>
             <groupId>com.zifang</groupId>
             <artifactId>z-rpc-core</artifactId>
-                <version>${project.version}</version>
+            <!-- 原来的 <version>${project.version}</version> 上移到仓根 DM（同坐标同值钉
+                 ${project.version}）：这一格父链完全不供 —— fleet 管的是
+                 io.github.yuku123:z-rpc-core:1.0.3，另一个 groupId。 -->
         </dependency>
 
         <!-- z-util-core (com.zifang.util.core.lang.RandomUtil — ZRpcExtInvoker 生成 requestId)。
@@ -46,11 +49,13 @@
              ('dependencies.dependency.version' missing for z-config-client / z-config-common)，
              Maven 直接丢弃它的全部传递依赖，泄漏断掉 → 按 z-lc 9014d38 口径显式声明主线坐标。
              jar 实测：io.github.yuku123:z-util-core:1.0.13 内 RandomUtil 的全限定名仍是
-             com.zifang.util.core.lang.RandomUtil，且 520 个 class 的 bytecode major version 全为 52（Java 8）。 -->
+             com.zifang.util.core.lang.RandomUtil，且 520 个 class 的 bytecode major version 全为 52（Java 8）。
+             2026-09-29：本仓那份 util.version=1.0.13 键与这里的 <version> 一起删掉 ——
+             z-boot-fleet 按坐标管着 io.github.yuku123:z-util-core 且面值同为 1.0.13
+             （repo1 回读 z-boot-fleet-1.0.0.pom：<z-util.version>1.0.13</z-util.version>）⇒ 同值可删。 -->
         <dependency>
             <groupId>io.github.yuku123</groupId>
             <artifactId>z-util-core</artifactId>
-            <version>${util.version}</version>
         </dependency>
 
         <!-- Jackson for JSON -->
@@ -76,7 +81,9 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-expression</artifactId>
-            <version>5.3.39</version>
+            <!-- 原本写字面 5.3.39。parent 的父级 z-boot-dependencies import 的
+                 org.springframework:spring-framework-bom 面值就是 5.3.39（repo1 回读实测，
+                 1.0.18 与 1.0.19 同一值）⇒ 同值可删，面值零漂移。 -->
         </dependency>
         <!-- Spring Core (for CachingMetadataReaderFactory) -->
         <dependency>
@@ -87,7 +94,14 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.9.2</version>
+            <!-- 原本写字面 5.9.2，是**本仓盖在地板前面**的一格（旧幻影父链 import 的
+                 z-boot-dependencies 1.0.18 里 junit-bom 已经是 5.9.3，实测 repo1 两份地板同值）。
+                 这次按地板面值 5.9.3 走：只钉聚合件（junit-jupiter）顶不住整族 ——
+                 api / engine / params / platform-* 仍由 junit-bom 供给，聚合件写 5.9.2 只会造成
+                 "一族两版"的半新半旧线，而这一格没有任何功能诉求，纯粹是历史遗留。
+                 ⚠ 聚合件带 junit-jupiter-engine（实测迁前/迁后 tree 里 engine 各 1 格），
+                 所以 parent 下发的 surefire 2.22.2（不像 3.x 自带 JUnit 5 provider）跑得动，
+                 测试数量基线 与迁移后逐模块对过。 -->
             <scope>test</scope>
         </dependency>
 

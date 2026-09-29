@@ -11,10 +11,8 @@
 
     <artifactId>z-ext-web</artifactId>
 
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+    <!-- 这里原来摊着 maven.compiler.source/target=8 与 project.build.sourceEncoding=UTF-8：
+         三格与 z-boot-parent 下发的面值逐字相同（8 / 8 / UTF-8，repo1 回读
+         z-boot-parent-1.0.19.pom 实测）⇒ 删，统一由 parent 下发（z-boot README「消费模型」步骤 3）。 -->
 
 </project>
