@@ -5,12 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.zifang</groupId>
+        <groupId>io.github.yuku123</groupId>
         <artifactId>z-ext</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>z-ext-core</artifactId>
+
+    <name>z-ext-core</name>
+    <description>扩展点框架核心：@ExtPoint / @ExtImpl 注解、实现注册表、路由、JDK 动态代理与 z-rpc 远程实现的调用适配</description>
 
     <dependencies>
         <!-- Spring Context -->
@@ -35,13 +38,16 @@
                  面值零漂移。字面版本留在模块里会压过仓根 DM 的一切写法（README「消费模型」步骤 3）。 -->
         </dependency>
 
-        <!-- z-rpc-core 依赖 -->
+        <!-- z-rpc 调用层。坐标是 io.github.yuku123:z-rpc-remoting，不是这里写了几年的
+             com.zifang:z-rpc-core：RpcClient/RpcRequest/RpcResponse 在 z-rpc 拆模块之后落在
+             remoting 这一件（全限定名 com.zifang.z.rpc.remoting.*），而 repo1 上的
+             io.github.yuku123:z-rpc-core:1.0.4 只有 cluster/config 两族 —— 两边类集对照与
+             javap 出来的方法差别记在仓根 pom 那条注释里，ZRpcExtInvoker 的 import 与两处调用
+             跟着改到 remoting 的形状。
+             版本不写字面：fleet 按这个坐标管着，继承来的 parent 下发面值。 -->
         <dependency>
-            <groupId>com.zifang</groupId>
-            <artifactId>z-rpc-core</artifactId>
-            <!-- 原来的 <version>${project.version}</version> 上移到仓根 DM（同坐标同值钉
-                 ${project.version}）：这一格父链完全不供 —— fleet 管的是
-                 io.github.yuku123:z-rpc-core:1.0.3，另一个 groupId。 -->
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-rpc-remoting</artifactId>
         </dependency>
 
         <!-- z-util-core (com.zifang.util.core.lang.RandomUtil — ZRpcExtInvoker 生成 requestId)。

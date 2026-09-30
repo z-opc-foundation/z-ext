@@ -12,7 +12,7 @@
 |------|-----|
 | **项目** | z-ext |
 | **分类** | 框架 · 扩展点 |
-| **父项目** | z-opc (com.zifang:z-opc:1.0.0-SNAPSHOT) |
+| **父项目** | z-boot-parent (io.github.yuku123:z-boot-parent:1.0.21) |
 | **默认端口** | `N/A` |
 | **文档维护** | z-opc-foundation |
 | **最近更新** | 2026-09-06 |

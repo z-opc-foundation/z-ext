@@ -17,14 +17,21 @@
         <relativePath/>
     </parent>
 
-    <!-- groupId 与 version 必须显式写出来：这两格以前是从 com.zifang:z-opc 继承的。
-         不写就会落到新 parent 的 groupId（io.github.yuku123），那时下面三个模块的
-         `<parent>com.zifang:z-ext:1.0.0-SNAPSHOT</parent>` 直接指不回本仓，而 z-opc 单体
-         也是按 com.zifang:z-ext-core 这一坐标引用本仓的 —— 换姓/抬号都不是本次迁移的决定
-         （判据：除我明确要改的，一件坐标都没漂）。 -->
-    <groupId>com.zifang</groupId>
+    <!-- 自家这两格必须显式写出来（以前是从 com.zifang:z-opc 那条幻影 parent 继承的，
+         不写就落到新 parent 的 groupId 上，下面三个模块的 parent 会指不回本仓）。
+         2026-09-30 CEO 裁定"上到中央仓库"，这一格从"换姓不动"改成真换号：
+           groupId com.zifang → io.github.yuku123（与本组织已发布的 26 个仓同一 namespace）
+           版本 1.0.0-SNAPSHOT → 1.0.0（Central 不收 SNAPSHOT；repo1 实测 z-ext / z-ext-core /
+             z-ext-web / z-ext-frontend 在两个 namespace 下 maven-metadata 全 404 ⇒ 1.0.0 是
+             这些坐标的第一个号，不顶掉任何已发布件）
+         Java 包名保持 com.zifang.*：换的是 Maven 坐标，不是 namespace（同 z-cache/z-util）。
+         原来那句"z-opc 单体也是按 com.zifang:z-ext-core 引用本仓"仍然成立，但那是同一台机器上的
+         幻影引用（z-opc 自己的 groupId 也是 com.zifang，且它不在本次发布范围里）⇒ 不构成留着
+         旧 namespace 的理由。仓内自家坐标（根 dependencyManagement + 子 pom 的 parent/sibling）
+         一起换，全组织 pom grep 实测除 z-opc 副本外没有别的消费者。 -->
+    <groupId>io.github.yuku123</groupId>
     <artifactId>z-ext</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
 
     <!-- 本仓自己的身份元数据必须自己写：继承链（z-boot-parent → z-boot-dependencies → z-boot 根 pom）
@@ -47,6 +54,23 @@
         </license>
     </licenses>
 
+    <!-- developers 这一格以前没有：flatten(oss) 会把父链的 developers 抄进每份发布 pom，
+         父链那格是 z-boot 的身份 ⇒ 自报本仓的（写法与面值同 z-cache/pom.xml、z-meta/pom.xml，
+         id/email 与本组织已上中央的 26 个仓逐字一致）。 -->
+    <developers>
+        <developer>
+            <id>yuku123</id>
+            <name>yuku123</name>
+            <email>1340947819@qq.com</email>
+            <organization>z-opc-foundation</organization>
+            <organizationUrl>https://github.com/z-opc-foundation</organizationUrl>
+            <timezone>+08:00</timezone>
+            <roles>
+                <role>owner</role>
+            </roles>
+        </developer>
+    </developers>
+
     <scm>
         <connection>scm:git:https://github.com/z-opc-foundation/z-ext.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/z-opc-foundation/z-ext.git</developerConnection>
@@ -56,7 +80,10 @@
 
     <modules>
         <module>z-ext-core</module>
-        <module>_frontend</module>
+        <!-- 前端 Vite/Node 不参与 Maven 发布：dist 拷的是 z-ext-admin/src/main/resources/static
+             （已废弃、不在 reactor），留着这条只会让发布构建去 nodejs.org 下 node；
+             仓里已提交的 static 资产（git ls-files 实测 6 个文件）不受影响。同做法见 z-config/pom.xml。 -->
+        <!-- <module>_frontend</module> -->
         <!-- z-ext-spring-boot-starter 已迁移到 z-boot/z-boot-integration-starters -->
         <!-- z-ext-admin 已废弃: 排除 build, 避免污染 -->
         <module>z-ext-web</module>
@@ -82,23 +109,23 @@
                  z-ext-core 的 maven-metadata.xml 全部 404，本仓从未对外发布过）⇒ 这 4 条是登记位，
                  fleet 收了 z-ext 就立刻生效。 -->
             <dependency>
-                <groupId>com.zifang</groupId>
+                <groupId>io.github.yuku123</groupId>
                 <artifactId>z-ext</artifactId>
                 <version>${project.version}</version>
                 <type>pom</type>
             </dependency>
             <dependency>
-                <groupId>com.zifang</groupId>
+                <groupId>io.github.yuku123</groupId>
                 <artifactId>z-ext-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.zifang</groupId>
+                <groupId>io.github.yuku123</groupId>
                 <artifactId>z-ext-web</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.zifang</groupId>
+                <groupId>io.github.yuku123</groupId>
                 <artifactId>z-ext-frontend</artifactId>
                 <version>${project.version}</version>
                 <type>pom</type>
@@ -116,19 +143,18 @@
                 <version>2.0</version>
             </dependency>
 
-            <!-- com.zifang:z-rpc-core 是旧 com.zifang:z-opc 父链那侧按 ${project.version} 供的坐标
-                 （实测旧父链 DM 里 z-ext-core/z-ext-web/z-ext-admin 三格也是 ${project.version}），
-                 新父链**不供这个 groupId**：fleet 管的是 io.github.yuku123:z-rpc-core:1.0.3，
-                 另一个坐标。原样钉 ${project.version}=1.0.0-SNAPSHOT 与迁移前逐字同值，
-                 模块侧那句 <version>${project.version}</version> 删掉（z-boot README 步骤 3 的
-                 "模块字面版本压过一切 DM"这一条，收上来才有根上的尺）。
-                 ⚠ 这一格今天仍然只存在于本机 ~/.m2（repo1 上 com/zifang 整棵树 404），
-                 是本次 cold-room 清单里的幻影坐标之一，不在迁移里顺手改坐标。 -->
-            <dependency>
-                <groupId>com.zifang</groupId>
-                <artifactId>z-rpc-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+            <!-- 2026-09-30：这条 com.zifang:z-rpc-core:${project.version} 删掉，模块侧换成
+                 io.github.yuku123:z-rpc-remoting（无版本，由继承来的 parent 下发 fleet 面值 1.0.4）。
+                 迁移那一轮在这里留的是"原样钉 ${project.version}，不在迁移里顺手改坐标"，代价是
+                 z-ext 的编译只能在本机发生：clean-room 实测
+                 Could not find artifact com.zifang:z-rpc-core:jar:1.0.0-SNAPSHOT。
+                 换坐标前先比过 jar 类集（这就是"候选换坐标仍需比类集"那把尺）：
+                   本机那份 com.zifang:z-rpc-core:1.0.0-SNAPSHOT 里 RpcClient/RpcRequest/RpcResponse
+                   在**根包** com.zifang.z.rpc（javap：sendRequest 返回 Object、request 用 setParameters），
+                   而 io.github.yuku123:z-rpc-core:1.0.4 只有 cluster/config 两族，这三件早已搬到
+                   io.github.yuku123:z-rpc-remoting 的 com.zifang.z.rpc.remoting（sendRequest 直接返回
+                   RpcResponse、参数槽叫 setArguments）。⇒ 目标坐标是 z-rpc-remoting 而不是同名同值的
+                 z-rpc-core，ZRpcExtInvoker 那三处 import 与两处调用要跟着改（已改，见该文件注释）。 -->
 
             <!-- 迁移前的 spring-boot-dependencies:${spring-boot.version} import 删掉。
                  ${spring-boot.version} 是旧幻影父链供的键（本仓自己没定义，实测 2.7.18），
@@ -146,18 +172,13 @@
                  两棵树里 com.mysql:mysql-connector-j 与 com.google.protobuf:protobuf-java 均 0 命中，
                  commons-logging 一族同样无差 ⇒ 本仓不需要照抄 mysql 那条 exclusion。 -->
 
-            <!-- 迁移前这里的两条"自家"条目：com.zifang:z-rpc-core（无 version，是个空壳条目，
-                 Maven 只能靠模块侧的 <version> 补上）已按上面的写法补上版本；
-                 com.zifang:z-boot-datasource-starter:${project.version} 原样保留 —— 它是仓外坐标
-                 （新父链供的是 io.github.yuku123:z-boot-datasource-starter:1.0.19，不同 groupId，
-                 互不干扰），只被**不在 reactor 里**的 z-ext-admin 引用（实测这一格也只在本机
-                 ~/.m2 存在：com/zifang/z-boot-datasource-starter/1.0.0-SNAPSHOT），
-                 删掉会让那份 pom 的无版本依赖彻底没有落点，属于"改完就没法回头"的动作。 -->
-            <dependency>
-                <groupId>com.zifang</groupId>
-                <artifactId>z-boot-datasource-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+            <!-- 2026-09-30：这条 com.zifang:z-boot-datasource-starter:${project.version} 删掉。
+                 迁移那一轮留它的理由是"删掉会让 z-ext-admin 那份无版本依赖没有落点"，而落点其实
+                 一直存在，只是换了坐标：继承来的 parent 按 io.github.yuku123:z-boot-datasource-starter
+                 供 1.0.21（repo1 可读），com.zifang 那一格只在本机 ~/.m2 里解析得到。
+                 唯一消费者 z-ext-admin 不在任何 reactor 里（<modules> 只有 z-ext-core / _frontend /
+                 z-ext-web，见 phantom_dep_census 的 reactor 口径），它的依赖声明已跟着换成
+                 io.github.yuku123 那条；留着这格就是给 repo1 上永远 404 的坐标做登记。 -->
         </dependencies>
     </dependencyManagement>
 
@@ -241,4 +262,142 @@
         </plugins>
     </build>
 
+    <!-- ═══════ 中央发布通道（2026-09-30 CEO 裁定「上到中央仓库」）═══════
+         逐件抄 z-cache/pom.xml 的 central profile，插件版本面值一件不改：
+         distributionManagement 指 https://central.sonatype.com（server id central 的凭据只在
+         ~/.m2/settings.xml，值不落仓）；maven-deploy-plugin 3.1.4 skip=true，上传由
+         central-publishing-maven-plugin 0.7.0 接管（tokenAuth + autoPublish + waitUntil=uploaded）；
+         maven-source-plugin 3.3.0、maven-javadoc-plugin 3.11.2（doclint=none + failOnError=false）、
+         maven-gpg-plugin 3.2.7（passphrase 只从 -Dgpg.passphrase 传，不写进 pom 也不写进命令行历史）。
+         发布用 pom 的自包含由上面常开的 flatten(oss) + updatePomFile 负责。 -->
+    <profiles>
+        <profile>
+            <id>central</id>
+            <properties>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
+                <central.gpg.skip>false</central.gpg.skip>
+            </properties>
+            <distributionManagement>
+                <repository>
+                    <id>central</id>
+                    <url>https://central.sonatype.com</url>
+                </repository>
+                <snapshotRepository>
+                    <id>central</id>
+                    <url>https://central.sonatype.com</url>
+                </snapshotRepository>
+            </distributionManagement>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <version>3.1.4</version>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.3.0</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.11.2</version>
+                        <configuration>
+                            <doclint>none</doclint>
+                            <failOnError>false</failOnError>
+                            <failOnWarnings>false</failOnWarnings>
+                            <quiet>true</quiet>
+                            <!-- Java 口径由 parent 的 pluginManagement 下发（z-cache 这里原先引的是
+                                 本仓没定义过的 compile.version，配 failOnError=false 后静默变成无效参数） -->
+                            <source>${maven.compiler.source}</source>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.7</version>
+                        <configuration>
+                            <skip>${central.gpg.skip}</skip>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                                <arg>--no-tty</arg>
+                            </gpgArguments>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.7.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <tokenAuth>true</tokenAuth>
+                            <autoPublish>true</autoPublish>
+                            <!-- 本插件不认 maven.deploy.skip，没排除的模块照样进 bundle
+                                 （实测结论见 z-schedule/pom.xml 同位置注释）⇒ 不可发布的模块点名列出。
+                                  · z-ext-web：src 只有 IDEA 占位类 com/zifang/Main.java（打印 Hello and welcome!），0 个扩展点实现 ⇒ 发出去是空壳件
+                                  -->
+                            <excludeArtifacts>
+                                <excludeArtifact>z-ext-web</excludeArtifact>
+                            </excludeArtifacts>
+                            <waitUntil>uploaded</waitUntil>
+                            <waitMaxTime>1800</waitMaxTime>
+                            <waitPollingInterval>10</waitPollingInterval>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- 真发前的形状检查：同一套 distributionManagement，只跳 javadoc 与签名。
+             与 central 一起开（-Pcentral,central-dryrun）时后者的 properties 覆盖 skip 两格。 -->
+        <profile>
+            <id>central-dryrun</id>
+            <properties>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <central.gpg.skip>true</central.gpg.skip>
+            </properties>
+            <distributionManagement>
+                <repository>
+                    <id>central</id>
+                    <url>https://central.sonatype.com</url>
+                </repository>
+                <snapshotRepository>
+                    <id>central</id>
+                    <url>https://central.sonatype.com</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+    </profiles>
 </project>

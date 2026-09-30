@@ -1,8 +1,8 @@
 package com.zifang.z.ext.rpc.client;
 
-import com.zifang.z.rpc.RpcClient;
-import com.zifang.z.rpc.RpcRequest;
-import com.zifang.z.rpc.RpcResponse;
+import com.zifang.z.rpc.remoting.RpcClient;
+import com.zifang.z.rpc.remoting.RpcRequest;
+import com.zifang.z.rpc.remoting.RpcResponse;
 
 import java.util.UUID;
 import com.zifang.util.core.lang.RandomUtil;
@@ -32,9 +32,10 @@ public class ZRpcExtInvoker implements ExtRpcInvoker {
         request.setInterfaceName(serviceInterface.getName());
         request.setMethodName(methodName);
         request.setParameterTypes(parameterTypes);
-        request.setParameters(args);
+        // remoting 那一版把参数槽改名叫 arguments（旧根包那一版是 parameters）
+        request.setArguments(args);
 
-        RpcResponse response = (RpcResponse) rpcClient.sendRequest(request);
+        RpcResponse response = rpcClient.sendRequest(request);
 
         if (response.getException() != null) {
             throw response.getException();
