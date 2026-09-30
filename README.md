@@ -271,8 +271,8 @@ _Maintained by the z-opc-foundation organization._
   - [`01-module-structure.md`](_doc/001_arch/01-module-structure.md) — 从 z-opc 拆分说明（父项目描述已过期，见「已知边界」第 6 条）
   - [`扩展平台SDK产品方案.md`](_doc/001_arch/扩展平台SDK产品方案.md) — 产品定位与功能矩阵
   - [`扩展平台SDK技术方案.md`](_doc/001_arch/扩展平台SDK技术方案.md) — 技术方案（其中的 `ExtensionPoint` / `Extension` 命名为设计稿，落码为 `ExtPoint` / `ExtImpl`）
-- [`_doc/002_deploy/`](_doc/002_deploy/) — 目前为空目录（本仓无可部署资产）
-- [`_doc/003_script/`](_doc/003_script/) — 目前为空目录
-- [`_doc/004_skill/`](_doc/004_skill/) — 目前为空目录
+- `_doc/002_deploy/` — 目前为空目录（本仓无可部署资产）
+- `_doc/003_script/` — 目前为空目录
+- `_doc/004_skill/` — 目前为空目录
 
 关键源码入口：[`z-ext-core/pom.xml`](z-ext-core/pom.xml)、[`ExtRegistry`](z-ext-core/src/main/java/com/zifang/z/ext/core/registry/ExtRegistry.java)、[`ExtProxyFactory`](z-ext-core/src/main/java/com/zifang/z/ext/core/proxy/ExtProxyFactory.java)、[`ExtIntegrationTest`](z-ext-core/src/test/java/com/zifang/z/ext/ExtIntegrationTest.java)、[`_frontend/src/App.jsx`](_frontend/src/App.jsx)、[`_frontend/vite.config.js`](_frontend/vite.config.js)。
