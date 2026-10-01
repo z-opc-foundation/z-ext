@@ -97,19 +97,6 @@
             <artifactId>spring-core</artifactId>
         </dependency>
         <!-- Test dependencies -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <!-- 原本写字面 5.9.2，是**本仓盖在地板前面**的一格（旧幻影父链 import 的
-                 z-boot-dependencies 1.0.18 里 junit-bom 已经是 5.9.3，实测 repo1 两份地板同值）。
-                 这次按地板面值 5.9.3 走：只钉聚合件（junit-jupiter）顶不住整族 ——
-                 api / engine / params / platform-* 仍由 junit-bom 供给，聚合件写 5.9.2 只会造成
-                 "一族两版"的半新半旧线，而这一格没有任何功能诉求，纯粹是历史遗留。
-                 ⚠ 聚合件带 junit-jupiter-engine（实测迁前/迁后 tree 里 engine 各 1 格），
-                 所以 parent 下发的 surefire 2.22.2（不像 3.x 自带 JUnit 5 provider）跑得动，
-                 测试数量基线 与迁移后逐模块对过。 -->
-            <scope>test</scope>
-        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
