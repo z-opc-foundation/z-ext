@@ -82,11 +82,35 @@ public class ExtRegistry {
 
     /**
      * 注册扩展实现
+     * <p>
+     * <b>同名注册直接拒绝</b>：{@link #getActiveImplementation(String)} 是按
+     * {@code name} 匹配 + {@code findFirst()} 定位的，一旦同一个 point 下出现两个同名实现，
+     * 调用方无法指定要哪一个 —— 被激活/路由到的必然是先注册的那个，另一个静默选不中。
+     * 早前这里是无脑 {@code add}（CopyOnWriteArrayList 不去重），撞名不会有任何提示。
+     * 现在显式抛 IllegalArgumentException，让问题在注册时暴露而不是在路由时静默出错。
+     * <p>
+     * 同一 point + 同一 name + 同一 implClass 视为重复注册（幂等，直接忽略），
+     * 这样容器里同一个 bean 被扫描到两次也不会炸。
      */
     public static void registerImpl(ExtImplDefinition definition) {
-        EXT_IMPL_REGISTRY
-                .computeIfAbsent(definition.getPoint(), k -> new CopyOnWriteArrayList<>())
-                .add(definition);
+        List<ExtImplDefinition> list = EXT_IMPL_REGISTRY
+                .computeIfAbsent(definition.getPoint(), k -> new CopyOnWriteArrayList<>());
+        for (ExtImplDefinition existing : list) {
+            if (existing.getName() == null ? definition.getName() == null
+                    : existing.getName().equals(definition.getName())) {
+                if (existing.getImplClass() != null
+                        && existing.getImplClass().equals(definition.getImplClass())) {
+                    // 同一个实现重复注册, 幂等忽略
+                    return;
+                }
+                throw new IllegalArgumentException(
+                        "扩展实现名冲突: point=" + definition.getPoint()
+                                + ", name=" + definition.getName()
+                                + "。getActiveImplementation 按名字 findFirst 定位，"
+                                + "同名会让其中一个永远选不中。请改用互不相同的 @ExtImpl(name=...)。");
+            }
+        }
+        list.add(definition);
 
         // 更新扩展点定义中的实现列表
         ExtPointDefinition pointDef = EXT_POINT_REGISTRY.get(definition.getPoint());
