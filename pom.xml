@@ -386,6 +386,7 @@
                                   -->
                             <excludeArtifacts>
                                 <excludeArtifact>z-ext-web</excludeArtifact>
+                                                            <excludeArtifact>z-ext-frontend</excludeArtifact>
                             </excludeArtifacts>
                             <waitUntil>uploaded</waitUntil>
                             <waitMaxTime>1800</waitMaxTime>
