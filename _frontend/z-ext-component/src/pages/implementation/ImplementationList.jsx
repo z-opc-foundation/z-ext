@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import {Button, Form, Input, message, Modal, Select, Space, Switch, Table, Tag} from 'antd'
 import {ApiOutlined, CloudServerOutlined, EditOutlined, LaptopOutlined, PlusOutlined} from '@ant-design/icons'
-import request from '../../utils/request'
+import request from '../../services/request'
 
 const {Option} = Select
 const {TextArea} = Input

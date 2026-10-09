@@ -1,8 +1,8 @@
 import {useEffect, useState} from 'react'
 import {Button, Form, Input, message, Modal, Select, Space, Table} from 'antd'
 import {EditOutlined, PlusOutlined, SwapOutlined} from '@ant-design/icons'
-import request from '../../utils/request'
-import {ExtensionPointTag} from '@yuku123/z-ext-frontend-component'
+import request from '../../services/request'
+import ExtensionPointTag from './ExtensionPointTag'
 
 const {Option} = Select
 

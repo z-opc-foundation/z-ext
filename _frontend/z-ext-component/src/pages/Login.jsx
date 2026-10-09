@@ -2,7 +2,7 @@ import {useState} from 'react'
 import {Button, Card, Form, Input, message} from 'antd'
 import {LockOutlined, UserOutlined} from '@ant-design/icons'
 import {useNavigate} from 'react-router-dom'
-import request from '../utils/request'
+import request from '../services/request'
 
 const Login = () => {
     const [loading, setLoading] = useState(false)

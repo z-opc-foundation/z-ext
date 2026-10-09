@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import {Card, Col, Row, Statistic, Table, Tag} from 'antd'
 import {ApiOutlined, CheckCircleOutlined, ExperimentOutlined, SwapOutlined} from '@ant-design/icons'
-import request from '../utils/request'
+import request from '../services/request'
 
 const Dashboard = () => {
     const [stats, setStats] = useState({
