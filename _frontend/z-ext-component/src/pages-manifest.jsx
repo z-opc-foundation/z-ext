@@ -27,7 +27,7 @@ export const menuItems = [
     { key: '/z-ext/route', label: '路由配置', icon: <SettingOutlined /> },
 ]
 
-export const routeTable = [
+export const routes = [
     { path: '/z-ext/home', Component: HomePage },
     { path: '/z-ext/dashboard', Component: Dashboard },
     { path: '/z-ext/extension/list', Component: ExtensionList },
