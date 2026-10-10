@@ -15,6 +15,7 @@ export const isAuthenticated = () => {
 export {default as Dashboard} from './pages/Dashboard'
 export {default as Login} from './pages/Login'
 import HomePage from './pages/HomePage'
+import ExtensionPointTag from './extension/ExtensionPointTag.jsx'
 
 /** 菜单 + 路由清单（lead 008 §10/§14/§16 批量落地）。App 壳在 suit 侧组装。 */
 export const appMeta = { title: 'z-ext 扩展管理', short: 'z-ext' }
