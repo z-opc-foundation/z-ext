@@ -15,10 +15,10 @@
 | **仓库** | `z-ext`（origin `git@github.com:z-opc-foundation/z-ext.git`，分支 `main`） |
 | **Maven 坐标** | `io.github.yuku123:z-ext`（聚合 POM）· `io.github.yuku123:z-ext-core`（唯一有 jar 的构件） |
 | **当前版本** | `1.0.0` 写在根 POM `<version>`，两个子模块 `<parent>` 逐字重复同一版本号——本仓**没有**用 `<revision>` 占位（尽管继承了带 CI-friendly 约定的 `z-boot-parent`） |
-| **父项目** | `io.github.yuku123:z-boot-parent:1.0.21`，`<relativePath/>` 留空（parent 在 repo1，不在磁盘）；父链地板 `z-boot-dependencies:1.0.20` + 兄弟仓权威表 `z-boot-fleet:1.0.1`，三件 repo1 均可读（200） |
+| **父项目** | `io.github.yuku123:z-boot-parent:1.1.0`，`<relativePath/>` 留空（parent 在 repo1，不在磁盘）；第三方地板与兄弟仓权威表均已并入 parent 自身（`z-boot-dependencies` / `z-boot-fleet` 两个文件夹随 2026-10-08 火车制拓扑退役） |
 | **Maven Central** | 已发布（2026-09-30，`maven-metadata` latest=release=`1.0.0`）：`z-ext:1.0.0` pom 200；`z-ext-core:1.0.0` pom/jar/-sources/-javadoc/.asc 全 200。404 未发布：`z-ext-web:1.0.0`（被 `central` profile 的 `excludeArtifacts` 点名排除）、`z-ext-frontend`（不在 reactor）、旧 namespace `com.zifang:z-ext` / `com.zifang:z-ext-core` |
 | **默认端口** | 无 —— 本仓不启 HTTP 服务（实测：`application*.yml` 0 个、`@RestController`/`@RequestMapping` 0 处）。前端 dev server 监听 `3000`，把 `/api` 代理到 `http://localhost:8080`（由宿主应用提供） |
-| **运行口径** | Java 8（parent 下发 `maven.compiler.source/target=8`）· Spring Framework 5.3.39（`z-boot-dependencies` 导入 Boot BOM 2.7.18 口径）；`z-ext-core` 只依赖 spring-context/beans/core/expression，**不依赖 Spring Boot** |
+| **运行口径** | Java 8（parent 下发 `maven.compiler.source/target=8`）· Spring Framework 5.3.39（`z-boot-parent` 自带地板导入 Boot BOM 2.7.18 口径）；`z-ext-core` 只依赖 spring-context/beans/core/expression，**不依赖 Spring Boot** |
 | **许可证** | MIT（根 [`LICENSE`](LICENSE) 为 MIT 全文，根 POM `<licenses>` 声明 MIT License） |
 | **最近更新** | 2026-09-30 |
 
@@ -63,7 +63,7 @@
 
 ```
 z-ext/
-├── pom.xml                 聚合 + 发布 POM：parent z-boot-parent:1.0.21、version 1.0.0、
+├── pom.xml                 聚合 + 发布 POM：parent z-boot-parent:1.1.0、version 1.0.0、
 │                           <modules> = z-ext-core + z-ext-web（_frontend 已注释、admin 已废弃）、central profile
 ├── LICENSE                 MIT 全文
 ├── README.md               本文档
@@ -97,8 +97,8 @@ z-ext/
 | 工具 | `io.github.yuku123:z-util-core` `1.0.14`（`RandomUtil.uuid()`；FQN 仍是 `com.zifang.util.core.lang.RandomUtil`） |
 | 日志门面 | log4j-api `2.25.4` |
 | 编译期 | lombok `1.18.30`（`provided`） |
-| 测试 | junit-jupiter `5.9.3`（地板 `z-boot-dependencies:1.0.20` 的 `junit-jupiter.version`，已发布 pom 经 flatten 不含 test 依赖）+ spring-boot-starter-test（test scope） |
-| 版本治理 | 第三方面值全部由 `z-boot-parent` → `z-boot-dependencies`（地板）+ `z-boot-fleet`（权威表）下发，模块 POM 无字面版本钉；根 POM 只按坐标顶住 `org.yaml:snakeyaml` `2.0`（地板无 snakeyaml 直接条目，面值只会从它导入的 `spring-boot-dependencies:2.7.18` 落到 1.30），且 fleet 里**没有**任何 `z-ext` 条目（实测 0 命中） |
+| 测试 | junit-jupiter `5.9.3`（`z-boot-parent` 自带地板的 `junit-jupiter.version`，已发布 pom 经 flatten 不含 test 依赖）+ spring-boot-starter-test（test scope） |
+| 版本治理 | 第三方面值全部由 `z-boot-parent` 下发（第三方地板与兄弟仓权威表均已并进 parent 自身，`z-boot-dependencies` / `z-boot-fleet` 两个文件夹随 2026-10-08 火车制拓扑退役），模块 POM 无字面版本钉；根 POM 只按坐标顶住 `org.yaml:snakeyaml` `2.0`（地板无 snakeyaml 直接条目，面值只会从它导入的 `spring-boot-dependencies:2.7.18` 落到 1.30），且 parent 的兄弟仓权威表里**没有**任何 `z-ext` 条目（实测 0 命中） |
 | 构建插件 | flatten-maven-plugin `1.5.0`（`oss` + `updatePomFile`，常开 ⇒ 发布 pom 自包含，不甩 parent 链）· maven-deploy-plugin `3.1.2` · versions-maven-plugin `2.17.1` · spring-boot-maven-plugin 本仓钉 `2.7.12`（仅供不在 reactor 的 admin）· surefire `2.22.2`（parent 下发） |
 | 前端 | React `^19.2.0` · Ant Design `^6.3.3` · react-router-dom `^7.13.1` · axios `^1.16.1` · Vite `^6.2.0` · ESLint `^9.39.4`；共享库 `@yuku123/z-frontend-common` `^0.1.1`、`@yuku123/z-ext-frontend-component` `^0.1.0` |
 
@@ -113,7 +113,7 @@ mvn clean install -DskipTests      # reactor = z-ext-core + z-ext-web
 mvn -q -pl z-ext-core -am install  # 只要核心 jar
 ```
 
-前提：本地或镜像能解析 `io.github.yuku123:z-boot-parent:1.0.21`（`<relativePath/>` 为空，parent 不在磁盘上）。仓库根不存在 `../pom.xml`，任何"在 z-opc 父项目下编译"的说法都不成立。
+前提：本地或镜像能解析 `io.github.yuku123:z-boot-parent:1.1.0`（`<relativePath/>` 为空，parent 不在磁盘上）。仓库根不存在 `../pom.xml`，任何"在 z-opc 父项目下编译"的说法都不成立。
 
 ### 作为依赖引入
 
