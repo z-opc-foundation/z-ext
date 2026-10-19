@@ -162,7 +162,7 @@ ExtRegistry.setActiveImpl("order.service", "custom");
 
 | 环境变量 | 出现处 | 用途 |
 |----------|--------|------|
-| `VITE_API_BASE_URL` | [`_frontend/src/utils/request.js`](_frontend/src/utils/request.js) | axios `baseURL`，缺省 `/api`；登录态读写键为 `zext_token` / `zext_user`（localStorage / sessionStorage） |
+| `VITE_API_BASE_URL` | [`_frontend/z-ext-component/src/services/request.js`](_frontend/z-ext-component/src/services/request.js) | axios `baseURL`，缺省 `/api`；登录态读写键为 `zext_token` / `zext_user`（localStorage / sessionStorage） |
 
 ---
 
@@ -264,15 +264,16 @@ _Maintained by the z-opc-foundation organization._
 
 ## 文档目录
 
+- [`_doc/008_troubleshooting/`](_doc/008_troubleshooting/) — 踩坑与失败要点（控制台点击普查实录）
 本项目文档统一收口在 `_doc/` 下：
 
 - [`_doc/001_arch/`](_doc/001_arch/) — 架构与设计文档：
   - [`00-overview.md`](_doc/001_arch/00-overview.md) — 项目总览与愿景（注意：ClassLoader 沙箱 / SPI 插件发现等尚未实现）
   - [`01-module-structure.md`](_doc/001_arch/01-module-structure.md) — 从 z-opc 拆分说明（父项目描述已过期，见「已知边界」第 6 条）
-  - [`扩展平台SDK产品方案.md`](_doc/001_arch/扩展平台SDK产品方案.md) — 产品定位与功能矩阵
-  - [`扩展平台SDK技术方案.md`](_doc/001_arch/扩展平台SDK技术方案.md) — 技术方案（其中的 `ExtensionPoint` / `Extension` 命名为设计稿，落码为 `ExtPoint` / `ExtImpl`）
+  - [`08-product-design.md`](_doc/001_arch/08-product-design.md) — 产品定位与功能矩阵
+  - [`09-technical-design.md`](_doc/001_arch/09-technical-design.md) — 技术方案（其中的 `ExtensionPoint` / `Extension` 命名为设计稿，落码为 `ExtPoint` / `ExtImpl`）
 - `_doc/002_deploy/` — 目前为空目录（本仓无可部署资产）
 - `_doc/003_script/` — 目前为空目录
 - `_doc/004_skill/` — 目前为空目录
 
-关键源码入口：[`z-ext-core/pom.xml`](z-ext-core/pom.xml)、[`ExtRegistry`](z-ext-core/src/main/java/com/zifang/z/ext/core/registry/ExtRegistry.java)、[`ExtProxyFactory`](z-ext-core/src/main/java/com/zifang/z/ext/core/proxy/ExtProxyFactory.java)、[`ExtIntegrationTest`](z-ext-core/src/test/java/com/zifang/z/ext/ExtIntegrationTest.java)、[`_frontend/src/App.jsx`](_frontend/src/App.jsx)、[`_frontend/vite.config.js`](_frontend/vite.config.js)。
+关键源码入口：[`z-ext-core/pom.xml`](z-ext-core/pom.xml)、[`ExtRegistry`](z-ext-core/src/main/java/com/zifang/z/ext/core/registry/ExtRegistry.java)、[`ExtProxyFactory`](z-ext-core/src/main/java/com/zifang/z/ext/core/proxy/ExtProxyFactory.java)、[`ExtIntegrationTest`](z-ext-core/src/test/java/com/zifang/z/ext/ExtIntegrationTest.java)、[`_frontend/z-ext-suit/src/App.jsx`](_frontend/z-ext-suit/src/App.jsx)、[`_frontend/z-ext-suit/vite.config.js`](_frontend/z-ext-suit/vite.config.js)。
