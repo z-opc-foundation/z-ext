@@ -17,7 +17,7 @@
 | **当前版本** | `1.0.0` 写在根 POM `<version>`，两个子模块 `<parent>` 逐字重复同一版本号——本仓**没有**用 `<revision>` 占位（尽管继承了带 CI-friendly 约定的 `z-boot-parent`） |
 | **父项目** | `io.github.yuku123:z-boot-parent:1.1.0`，`<relativePath/>` 留空（parent 在 repo1，不在磁盘）；第三方地板与兄弟仓权威表均已并入 parent 自身（`z-boot-dependencies` / `z-boot-fleet` 两个文件夹随 2026-10-08 火车制拓扑退役） |
 | **Maven Central** | 已发布（2026-09-30，`maven-metadata` latest=release=`1.0.0`）：`z-ext:1.0.0` pom 200；`z-ext-core:1.0.0` pom/jar/-sources/-javadoc/.asc 全 200。404 未发布：`z-ext-web:1.0.0`（被 `central` profile 的 `excludeArtifacts` 点名排除）、`z-ext-frontend`（不在 reactor）、旧 namespace `com.zifang:z-ext` / `com.zifang:z-ext-core` |
-| **默认端口** | 无 —— 本仓不启 HTTP 服务（实测：`application*.yml` 0 个、`@RestController`/`@RequestMapping` 0 处）。前端 dev server 监听 `3000`，把 `/api` 代理到 `http://localhost:8080`（由宿主应用提供） |
+| **默认端口** | 无 —— 本仓不启 HTTP 服务（实测：`application*.yml` 0 个、`@RestController`/`@RequestMapping` 0 处）。前端 dev server 监听 `3003`，把 `/api` 代理到 `http://localhost:8888`（由宿主应用提供） |
 | **运行口径** | Java 8（parent 下发 `maven.compiler.source/target=8`）· Spring Framework 5.3.39（`z-boot-parent` 自带地板导入 Boot BOM 2.7.18 口径）；`z-ext-core` 只依赖 spring-context/beans/core/expression，**不依赖 Spring Boot** |
 | **许可证** | MIT（根 [`LICENSE`](LICENSE) 为 MIT 全文，根 POM `<licenses>` 声明 MIT License） |
 | **最近更新** | 2026-09-30 |
@@ -50,7 +50,7 @@
 
 **注册的两条路径**：
 
-1. 编程式（当前实测唯一跑通的路径，全部 40 条测试都走这条）：`ExtRegistry.registerPoint(...)` → `ExtRegistry.registerImpl(...)` → `ExtProxyFactory.createProxy(pointDef)`。
+1. 编程式（当前实测唯一跑通的路径，全部既有测试都走这条）：`ExtRegistry.registerPoint(...)` → `ExtRegistry.registerImpl(...)` → `ExtProxyFactory.createProxy(pointDef)`。
 2. 注解式：`@EnableExt(basePackages = "com.x")` → `ExtRegistrar` → `ExtScanner` 扫字节码填充注册表。`ExtScanner` 只有 `ExtScanner(String[])` 构造和字段，**没有 `basePackages` 的 setter**，而 `ExtRegistrar` 是用 `BeanDefinitionBuilder.addPropertyValue("basePackages", …)` 写这个属性的 ⇒ 实例化该 BeanDefinition 时 Spring 会因属性不可写而失败（`NotWritablePropertyException`）；`@EnableExt.proxyTargetClass` 也没有任何读取方。这条链路 0 测试覆盖。
 
 **生命周期**：只有 *注册 → 启用/停用（`enabled` 标志）→ 激活切换（`setActiveImpl` / `getActiveImpl`）→ 清空（`clear()`，注释写明主要给测试用）* 四态。`ExtRegistry.ExtChangeListener` 提供 `onImplRegistered` 与 `onActiveImplChanged` 两个回调（默认空实现，单个监听器抛异常被吞掉不影响其它监听器），这是"热切换"唯一的可观测钩子。**没有 install / start / stop / uninstall，也没有版本协商**（`ExtPointDefinition.version` 只写不读，`getVersion()` 无调用方）。
@@ -67,16 +67,14 @@ z-ext/
 │                           <modules> = z-ext-core + z-ext-web（_frontend 已注释、admin 已废弃）、central profile
 ├── LICENSE                 MIT 全文
 ├── README.md               本文档
-├── z-ext-core/             框架核心：注解 / 注册表 / 路由 / 代理 / RPC / 脚本桥（19 个 main 类 + 9 个 test 文件）
+├── z-ext-core/             框架核心：注解 / 注册表 / 路由 / 代理 / RPC / 脚本桥（19 个 main 类）
 ├── z-ext-web/              IDEA 占位模块：src 只有 Main.java 打印 "Hello and welcome!"；在 reactor 里，被 central 排除
 ├── z-ext-admin/            已废弃、不在 reactor：无 Java 源码，只剩 SPA 静态产物
 │   └── src/main/resources/static/        index.html + assets/*.js|css（_frontend 构建拷过来的历史快照）
-├── _frontend/              配套 SPA（独立 npm 工程，同样不在 reactor）
-│   ├── src/App.jsx         路由与菜单（概览 / 扩展点管理 / 实现管理 / 路由配置）
-│   ├── src/pages/          Dashboard · Login · extension/ExtensionList · implementation/ImplementationList
-│   ├── src/utils/request.js  axios 实例（createRequest from @yuku123/z-frontend-common）
-│   ├── pom.xml             frontend-maven-plugin 配置（未参与构建，见「前端」一节）
-│   └── vite.config.js      dev 端口 3000，/api → http://localhost:8080
+├── _frontend/              配套前端（两个 npm 工程，都不在 reactor）
+│   ├── z-ext-component/    组件层 library（`@yuku123/z-ext-component`）：pages / extension / services
+│   └── z-ext-suit/         应用层 SPA（`@yuku123/z-ext-suit`，private）：App.jsx / main.jsx
+│       └── vite.config.js  dev 端口 3003，/api → http://localhost:8888
 └── _doc/                   文档，见文末「文档目录」
 ```
 
@@ -169,11 +167,10 @@ ExtRegistry.setActiveImpl("order.service", "custom");
 ## 🖥️ 前端（`_frontend/`）
 
 ```bash
-cd _frontend
-pnpm install     # pnpm-workspace.yaml: nodeLinker: hoisted
-pnpm dev         # http://localhost:3000，/api 代理到 http://localhost:8080
-pnpm build       # 产物 dist/
-pnpm lint
+cd _frontend/z-ext-suit          # 应用层 SPA；组件层在同级的 z-ext-component
+npm install
+npm run dev      # http://localhost:3003，/api 代理到 http://localhost:8888
+npm run build    # 产物 dist/
 ```
 
 四个页面：概览 Dashboard（统计扩展点数 / 实现数 / 启用数，"最近活动"是硬编码的示例数据）、Login、扩展点管理 ExtensionList、实现管理 ImplementationList（列含 `point` / `name` / `type` / `implClass` / `rpcAddress` / `enabled` / `weight`）；菜单里还有一条 `/route`「路由配置」，实现是占位文本。
@@ -212,7 +209,7 @@ pnpm lint
 mvn -pl z-ext-core test
 ```
 
-实测 5 个测试类 / 40 个 `@Test`，全在 `z-ext-core/src/test/java/com/zifang/z/ext/`：`ExtRegistryTest`(9)、`ExtRouterTest`(9)、`ExtProxyFactoryTest`(9)、`ExtInvocationHandlerTest`(7)、`ExtIntegrationTest`(6)；`test/` 下另备 `OrderService` + PLATFORM/CUSTOM 两个实现与一个 `@ExtPoint` 标注的 `PaymentService` 作夹具。`z-ext-web` / `z-ext-admin` / `_frontend` 无测试。
+实测的测试类全在 `z-ext-core/src/test/java/com/zifang/z/ext/`：`ExtRegistryTest`、`ExtRouterTest`、`ExtProxyFactoryTest`、`ExtInvocationHandlerTest`、`ExtIntegrationTest`、`ScriptBackedImplNamingTest`；`test/` 下另备 `OrderService` + PLATFORM/CUSTOM 两个实现与一个 `@ExtPoint` 标注的 `PaymentService` 作夹具。`z-ext-web` / `z-ext-admin` / `_frontend` 无测试。
 
 如实说明两处缺口：① 无 Spring 上下文测试 —— `ExtScanner`、`ExtRegistrar`、`@EnableExt`、`ScriptBackedExtImpl` 在测试源码里 0 命中，所以"注解扫描自动注册"这条链路没有任何测试把它跑通过；② `ZRpcExtInvoker` 需要真实 z-rpc 服务端才能端到端验证，纯单测只覆盖到注册表与代理层。没有 `*PerformanceTest.java`。
 
