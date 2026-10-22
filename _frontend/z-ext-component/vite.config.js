@@ -17,7 +17,8 @@ export default defineConfig({
         emptyOutDir: true,
         rollupOptions: {
             external: ['react', 'react-dom', 'react-dom/client', 'react-router-dom',
-                       'antd', '@ant-design/icons', 'axios', '@yuku123/z-frontend-common'],
+                       'antd', '@ant-design/icons', 'axios', '@yuku123/z-frontend-common',
+                       '@yuku123/z-frontend-common/ui', '@yuku123/z-frontend-common/ui/echarts'],
         },
     },
 })
