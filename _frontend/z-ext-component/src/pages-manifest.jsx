@@ -1,4 +1,4 @@
-import { ApiOutlined, DashboardOutlined, ExperimentOutlined, HomeOutlined, SettingOutlined } from '@ant-design/icons'
+import { ApiOutlined, DashboardOutlined, ExperimentOutlined, HomeOutlined, ReadOutlined, SettingOutlined } from '@ant-design/icons'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import ExtensionList from './pages/extension/ExtensionList'
@@ -16,6 +16,7 @@ export {default as Dashboard} from './pages/Dashboard'
 export {default as Login} from './pages/Login'
 import HomePage from './pages/HomePage'
 import ExtensionPointTag from './extension/ExtensionPointTag.jsx'
+import ComponentDocPage from './pages/ComponentDoc.jsx'
 
 /** 菜单 + 路由清单（lead 008 §10/§14/§16 批量落地）。App 壳在 suit 侧组装。 */
 export const appMeta = { title: 'z-ext 扩展管理', short: 'z-ext' }
@@ -26,6 +27,7 @@ export const menuItems = [
     { key: '/z-ext/extension/list', label: '扩展点管理', icon: <ApiOutlined /> },
     { key: '/z-ext/implementation/list', label: '实现管理', icon: <ExperimentOutlined /> },
     { key: '/z-ext/route', label: '路由配置', icon: <SettingOutlined /> },
+    { key: '/z-ext/docs', label: '组件文档', icon: <ReadOutlined /> },
 ]
 
 export const routes = [
@@ -33,7 +35,10 @@ export const routes = [
     { path: '/z-ext/dashboard', Component: Dashboard },
     { path: '/z-ext/extension/list', Component: ExtensionList },
     { path: '/z-ext/implementation/list', Component: ImplementationList },
+    { path: '/z-ext/docs', Component: ComponentDocPage },
 ]
 
 export { default as HomePage } from './pages/HomePage'
 export { default as LoginPage } from './pages/LoginPage'
+// 主壳接线用：文档页统一以 ComponentDocPage 这个名字从主入口导出。
+export { default as ComponentDocPage } from './pages/ComponentDoc.jsx'
