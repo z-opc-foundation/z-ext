@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react'
 import {Button, Form, Input, message, Modal, Select, Space, Table} from 'antd'
 import {EditOutlined, PlusOutlined, SwapOutlined} from '@ant-design/icons'
+import {EmptyState, ErrorState, TableToolbar} from '@yuku123/z-frontend-common/ui'
 import request from '../../services/request'
 import ExtensionPointTag from './ExtensionPointTag'
 
@@ -11,6 +12,7 @@ const ExtensionList = () => {
     const [loading, setLoading] = useState(false)
     const [modalVisible, setModalVisible] = useState(false)
     const [editingRecord, setEditingRecord] = useState(null)
+    const [error, setError] = useState(null)
     const [form] = Form.useForm()
 
     const columns = [
@@ -84,8 +86,11 @@ const ExtensionList = () => {
         try {
             const res = await request.get('/api/ext/points')
             setDataSource(res.data || [])
-        } catch (error) {
-            message.error('获取扩展点列表失败')
+            setError(null)
+        } catch (e) {
+            // 保留原始 error 对象：ErrorState 会优先取后端 response.data.message，
+            // 压成字符串就只剩 axios 的 "Request failed with status code 500"。
+            setError(e)
         } finally {
             setLoading(false)
         }
@@ -155,15 +160,23 @@ const ExtensionList = () => {
 
     return (
         <div>
-            <div style={{marginBottom: 16}}>
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined/>}
-                    onClick={handleAdd}
-                >
-                    新建扩展点
-                </Button>
-            </div>
+            <TableToolbar
+                right={
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined/>}
+                        onClick={handleAdd}
+                    >
+                        新建扩展点
+                    </Button>
+                }
+            />
+
+            {error && (
+                <div style={{marginBottom: 16}}>
+                    <ErrorState error={error} title="获取扩展点列表失败" onRetry={() => fetchData()}/>
+                </div>
+            )}
 
             <Table
                 columns={columns}
@@ -175,6 +188,7 @@ const ExtensionList = () => {
                     showQuickJumper: true,
                     showTotal: (total) => `共 ${total} 条`,
                 }}
+                locale={{emptyText: <EmptyState title="暂无扩展点" description="点「新建扩展点」登记第一个扩展点"/>}}
             />
 
             <Modal

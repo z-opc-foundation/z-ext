@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react'
 import {Button, Form, Input, message, Modal, Select, Space, Switch, Table, Tag} from 'antd'
 import {ApiOutlined, CloudServerOutlined, EditOutlined, LaptopOutlined, PlusOutlined} from '@ant-design/icons'
+import {EmptyState, ErrorState, TableToolbar} from '@yuku123/z-frontend-common/ui'
 import request from '../../services/request'
 
 const {Option} = Select
@@ -11,6 +12,7 @@ const ImplementationList = () => {
     const [loading, setLoading] = useState(false)
     const [modalVisible, setModalVisible] = useState(false)
     const [editingRecord, setEditingRecord] = useState(null)
+    const [error, setError] = useState(null)
     const [form] = Form.useForm()
     const [pointOptions, setPointOptions] = useState([])
 
@@ -101,8 +103,11 @@ const ImplementationList = () => {
         try {
             const res = await request.get('/api/ext/implementations')
             setDataSource(res.data || [])
-        } catch (error) {
-            message.error('获取实现列表失败')
+            setError(null)
+        } catch (e) {
+            // 保留原始 error 对象：ErrorState 会优先取后端 response.data.message，
+            // 压成字符串就只剩 axios 的 "Request failed with status code 500"。
+            setError(e)
         } finally {
             setLoading(false)
         }
@@ -167,15 +172,23 @@ const ImplementationList = () => {
 
     return (
         <div>
-            <div style={{marginBottom: 16}}>
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined/>}
-                    onClick={handleAdd}
-                >
-                    新建实现
-                </Button>
-            </div>
+            <TableToolbar
+                right={
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined/>}
+                        onClick={handleAdd}
+                    >
+                        新建实现
+                    </Button>
+                }
+            />
+
+            {error && (
+                <div style={{marginBottom: 16}}>
+                    <ErrorState error={error} title="获取实现列表失败" onRetry={() => fetchData()}/>
+                </div>
+            )}
 
             <Table
                 columns={columns}
@@ -187,6 +200,7 @@ const ImplementationList = () => {
                     showQuickJumper: true,
                     showTotal: (total) => `共 ${total} 条`,
                 }}
+                locale={{emptyText: <EmptyState title="暂无实现" description="点「新建实现」给扩展点接一个实现"/>}}
             />
 
             <Modal

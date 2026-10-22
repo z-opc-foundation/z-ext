@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react'
 import {Card, Col, Row, Statistic, Table, Tag} from 'antd'
 import {ApiOutlined, CheckCircleOutlined, ExperimentOutlined, SwapOutlined} from '@ant-design/icons'
+import {EmptyState, ErrorState} from '@yuku123/z-frontend-common/ui'
 import request from '../services/request'
 
 const Dashboard = () => {
@@ -12,6 +13,7 @@ const Dashboard = () => {
     })
     const [recentActivities, setRecentActivities] = useState([])
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
 
     useEffect(() => {
         fetchDashboardData()
@@ -41,8 +43,11 @@ const Dashboard = () => {
                 {id: 2, action: '切换实现', target: 'payment.process -> wechat', time: '1小时前'},
                 {id: 3, action: '新增扩展点', target: 'user.validate', time: '3小时前'},
             ])
-        } catch (error) {
-            console.error('获取数据失败', error)
+            setError(null)
+        } catch (e) {
+            // 保留原始 error 对象：ErrorState 会优先取后端 response.data.message，
+            // 压成字符串就只剩 axios 的 "Request failed with status code 500"。
+            setError(e)
         } finally {
             setLoading(false)
         }
@@ -77,6 +82,11 @@ const Dashboard = () => {
 
     return (
         <div>
+            {error && (
+                <div style={{marginBottom: 16}}>
+                    <ErrorState error={error} title="获取扩展点概览失败" onRetry={() => fetchDashboardData()}/>
+                </div>
+            )}
             <Row gutter={16}>
                 <Col span={6}>
                     <Card>
@@ -126,6 +136,7 @@ const Dashboard = () => {
                         loading={loading}
                         rowKey="id"
                         pagination={false}
+                        locale={{emptyText: <EmptyState title="暂无最近活动" description="接口返回空列表" size="sm"/>}}
                     />
                 </Card>
             </div>
