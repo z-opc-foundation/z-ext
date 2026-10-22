@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
-import {Button, Form, Input, message, Modal, Select, Space, Table} from 'antd'
+import {Button, Form, Input, message, Modal, Select, Space} from 'antd'
 import {EditOutlined, PlusOutlined, SwapOutlined} from '@ant-design/icons'
-import {EmptyState, ErrorState, TableToolbar} from '@yuku123/z-frontend-common/ui'
+import {ErrorState, ListTable} from '@yuku123/z-frontend-common/ui'
 import request from '../../services/request'
 import ExtensionPointTag from './ExtensionPointTag'
 
@@ -160,8 +160,16 @@ const ExtensionList = () => {
 
     return (
         <div>
-            <TableToolbar
-                right={
+            {error && (
+                <div style={{marginBottom: 16}}>
+                    <ErrorState error={error} title="获取扩展点列表失败" onRetry={() => fetchData()}/>
+                </div>
+            )}
+
+            {/* 列表页三件套（分页 + 查询 + EmptyState）由基座 ListTable 一次带齐；
+                「新建扩展点」放 cardExtra，与搜索框并排（lead 008 §2）。 */}
+            <ListTable
+                cardExtra={
                     <Button
                         type="primary"
                         icon={<PlusOutlined/>}
@@ -170,25 +178,14 @@ const ExtensionList = () => {
                         新建扩展点
                     </Button>
                 }
-            />
-
-            {error && (
-                <div style={{marginBottom: 16}}>
-                    <ErrorState error={error} title="获取扩展点列表失败" onRetry={() => fetchData()}/>
-                </div>
-            )}
-
-            <Table
+                rows={dataSource}
                 columns={columns}
-                dataSource={dataSource}
                 loading={loading}
                 rowKey="id"
-                pagination={{
-                    showSizeChanger: true,
-                    showQuickJumper: true,
-                    showTotal: (total) => `共 ${total} 条`,
-                }}
-                locale={{emptyText: <EmptyState title="暂无扩展点" description="点「新建扩展点」登记第一个扩展点"/>}}
+                searchKeys={['point', 'interfaceClass', 'description']}
+                searchPlaceholder="按扩展点 / 接口类 / 描述过滤"
+                emptyTitle="暂无扩展点"
+                emptyDescription="点「新建扩展点」登记第一个扩展点"
             />
 
             <Modal

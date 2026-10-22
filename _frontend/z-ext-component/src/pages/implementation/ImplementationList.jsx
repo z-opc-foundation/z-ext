@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
-import {Button, Form, Input, message, Modal, Select, Space, Switch, Table, Tag} from 'antd'
+import {Button, Form, Input, message, Modal, Select, Space, Switch, Tag} from 'antd'
 import {ApiOutlined, CloudServerOutlined, EditOutlined, LaptopOutlined, PlusOutlined} from '@ant-design/icons'
-import {EmptyState, ErrorState, TableToolbar} from '@yuku123/z-frontend-common/ui'
+import {ErrorState, ListTable} from '@yuku123/z-frontend-common/ui'
 import request from '../../services/request'
 
 const {Option} = Select
@@ -172,8 +172,16 @@ const ImplementationList = () => {
 
     return (
         <div>
-            <TableToolbar
-                right={
+            {error && (
+                <div style={{marginBottom: 16}}>
+                    <ErrorState error={error} title="获取实现列表失败" onRetry={() => fetchData()}/>
+                </div>
+            )}
+
+            {/* 列表页三件套（分页 + 查询 + EmptyState）由基座 ListTable 一次带齐；
+                「新建实现」放 cardExtra，与搜索框并排（lead 008 §2）。 */}
+            <ListTable
+                cardExtra={
                     <Button
                         type="primary"
                         icon={<PlusOutlined/>}
@@ -182,25 +190,14 @@ const ImplementationList = () => {
                         新建实现
                     </Button>
                 }
-            />
-
-            {error && (
-                <div style={{marginBottom: 16}}>
-                    <ErrorState error={error} title="获取实现列表失败" onRetry={() => fetchData()}/>
-                </div>
-            )}
-
-            <Table
+                rows={dataSource}
                 columns={columns}
-                dataSource={dataSource}
                 loading={loading}
                 rowKey="id"
-                pagination={{
-                    showSizeChanger: true,
-                    showQuickJumper: true,
-                    showTotal: (total) => `共 ${total} 条`,
-                }}
-                locale={{emptyText: <EmptyState title="暂无实现" description="点「新建实现」给扩展点接一个实现"/>}}
+                searchKeys={['name', 'point', 'implClass']}
+                searchPlaceholder="按实现名称 / 扩展点 / 实现类过滤"
+                emptyTitle="暂无实现"
+                emptyDescription="点「新建实现」给扩展点接一个实现"
             />
 
             <Modal
