@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.yuku123</groupId>
         <artifactId>z-ext</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </parent>
 
     <artifactId>z-ext-core</artifactId>

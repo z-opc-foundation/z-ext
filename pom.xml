@@ -31,7 +31,7 @@
          一起换，全组织 pom grep 实测除 z-opc 副本外没有别的消费者。 -->
     <groupId>io.github.yuku123</groupId>
     <artifactId>z-ext</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>pom</packaging>
 
     <!-- 本仓自己的身份元数据必须自己写：继承链（z-boot-parent → z-boot-dependencies → z-boot 根 pom）
