@@ -126,9 +126,8 @@ RPC 地址 / RPC 端口 / 路由条件（SpEL）/ 权重 / 是否启用 / 描述
 - ⚠ **请求路径被拼了两遍**：请求实例 `baseURL` 是 `'/api'`，而页面里写的是绝对路径
   `/api/ext/points` ⇒ axios 拼出来是 **`/api/api/ext/points`**。
   宿主要么把 `baseURL` 配成 `''`，要么让页面改用相对路径 —— 两边必须统一。
-- **菜单与路由对不上（两处）**：
-  - 菜单「概览」的 key 是 `/z-ext/overview`，但对应路由是 `/z-ext/dashboard` ⇒ 点「概览」会 404；
-  - 菜单「路由配置」的 key 是 `/z-ext/route`，**没有任何路由对应它** ⇒ 点它必 404。
+- **菜单与路由已对齐**：原「概览」指向不存在的 `/z-ext/overview`，现已改为实际路由
+  `/z-ext/dashboard`；原先没有页面的「路由配置」入口已移除，菜单不再有 404 链接。
 - **「切换实现」是空动作**：`ExtensionList` 的 `handleSwitch` 弹一个确认框，
   `onOk` 里只 `message.success('切换成功')` + 重新拉列表，**没有调任何后端接口**。
 - **概览页的「最近活动」是假数据**：`Dashboard` 里三条活动是写死在代码里的常量，

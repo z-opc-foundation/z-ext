@@ -1,4 +1,4 @@
-import { ApiOutlined, DashboardOutlined, ExperimentOutlined, HomeOutlined, ReadOutlined, SettingOutlined } from '@ant-design/icons'
+import { ApiOutlined, DashboardOutlined, ExperimentOutlined, HomeOutlined, ReadOutlined } from '@ant-design/icons'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import ExtensionList from './pages/extension/ExtensionList'
@@ -23,10 +23,9 @@ export const appMeta = { title: 'z-ext 扩展管理', short: 'z-ext' }
 
 export const menuItems = [
     { key: '/z-ext/home', label: '首页', icon: <HomeOutlined /> },
-    { key: '/z-ext/overview', label: '概览', icon: <DashboardOutlined /> },
+    { key: '/z-ext/dashboard', label: '概览', icon: <DashboardOutlined /> },
     { key: '/z-ext/extension/list', label: '扩展点管理', icon: <ApiOutlined /> },
     { key: '/z-ext/implementation/list', label: '实现管理', icon: <ExperimentOutlined /> },
-    { key: '/z-ext/route', label: '路由配置', icon: <SettingOutlined /> },
     { key: '/z-ext/docs', label: '组件文档', icon: <ReadOutlined /> },
 ]
 
