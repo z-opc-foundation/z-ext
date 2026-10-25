@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import {Card, Col, Row, Statistic, Table, Tag} from 'antd'
 import {ApiOutlined, CheckCircleOutlined, ExperimentOutlined, SwapOutlined} from '@ant-design/icons'
-import {EmptyState, ErrorState} from '@yuku123/z-frontend-common/ui'
+import {DEFAULT_PAGINATION, EmptyState, ErrorState} from '@yuku123/z-frontend-common/ui'
 import request from '../services/request'
 
 const Dashboard = () => {
@@ -135,7 +135,7 @@ const Dashboard = () => {
                         dataSource={recentActivities}
                         loading={loading}
                         rowKey="id"
-                        pagination={false}
+                        pagination={DEFAULT_PAGINATION}
                         locale={{emptyText: <EmptyState title="暂无最近活动" description="接口返回空列表" size="sm"/>}}
                     />
                 </Card>
