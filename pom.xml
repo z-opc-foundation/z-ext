@@ -42,7 +42,7 @@
          —— 那是 z-boot 的身份和一个不存在的 GitHub 路径，发出去等于给本仓的每个构件贴错标签。
          25 个已迁仓（z-cache/z-ctc/z-report…）都是自报这一组字段，同一个口径。
          url/scm 取本仓真实 remote（实测 `git remote -v` = git@github.com:z-opc-foundation/z-ext.git）。 -->
-    <name>z-ext</name>
+    <name>z-ext :: root</name>
     <description>Java 扩展点框架 (Extension) — 运行时动态注册 / 路由 / 代理调用，用于业务可插拔设计</description>
     <url>https://github.com/z-opc-foundation/z-ext</url>
 

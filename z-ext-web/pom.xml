@@ -11,7 +11,7 @@
 
     <artifactId>z-ext-web</artifactId>
 
-    <name>z-ext-web</name>
+    <name>z-ext :: web</name>
     <description>IDEA 生成的占位模块（src 只有一个打印 Hello and welcome! 的 Main 类），不参与中央发布：根 pom 的 central profile 已把它列进 excludeArtifacts</description>
 
     <!-- 这里原来摊着 maven.compiler.source/target=8 与 project.build.sourceEncoding=UTF-8：
