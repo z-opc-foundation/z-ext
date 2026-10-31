@@ -11,6 +11,8 @@
     </parent>
 
     <artifactId>z-ext-admin</artifactId>
+    <name>z-ext :: admin</name>
+    <description>z-ext 管理控制台独立启动器（standalone admin 应用）——含前端内嵌，不发 Maven Central。</description>
 
     <dependencies>
         <!-- Spring Boot Web -->
