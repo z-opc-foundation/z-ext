@@ -18,7 +18,7 @@
 | **父项目** | `io.github.yuku123:z-boot-parent:1.2.2`，`<relativePath/>` 留空（parent 在 repo1，不在磁盘）；第三方地板与兄弟仓权威表均已并入 parent 自身（`z-boot-dependencies` / `z-boot-fleet` 两个文件夹随 2026-10-08 火车制拓扑退役） |
 | **Maven Central** | 已发布（2026-09-30，`maven-metadata` latest=release=`1.0.0`）：`z-ext:1.0.0` pom 200；`z-ext-core:1.0.0` pom/jar/-sources/-javadoc/.asc 全 200。404 未发布：`z-ext-web:1.0.0`（被 `central` profile 的 `excludeArtifacts` 点名排除）、`z-ext-frontend`（不在 reactor）、旧 namespace `com.zifang:z-ext` / `com.zifang:z-ext-core` |
 | **默认端口** | 无 —— 本仓不启 HTTP 服务（实测：`application*.yml` 0 个、`@RestController`/`@RequestMapping` 0 处）。前端 dev server 监听 `3003`，把 `/api` 代理到 `http://localhost:8888`（由宿主应用提供） |
-| **运行口径** | Java 17（parent 下发 `maven.compiler.source/target=17`）· Spring Framework 5.3.39（`z-boot-parent` 自带地板导入 Boot BOM 2.7.18 口径）；`z-ext-core` 只依赖 spring-context/beans/core/expression，**不依赖 Spring Boot** |
+| **运行口径** | Java 17（**当前生效**：`z-boot-parent:1.2.2` 下发 `maven.compiler.source/target=17` 与 `-parameters`，对应 Spring 6.1 / Boot 3.3 地板）· Spring Framework 6.1.21（`spring-boot-dependencies:3.3.13` BOM 口径）；`z-ext-core` 只依赖 spring-context/beans/core/expression，**不依赖 Spring Boot**（仅 test scope 引 `spring-boot-starter-test`）。根 POM 注释里残留的 `source/target=8` 是 parent 升级前（1.0.19 时代）的历史口径，已不生效 |
 | **许可证** | MIT（根 [`LICENSE`](LICENSE) 为 MIT 全文，根 POM `<licenses>` 声明 MIT License） |
 | **最近更新** | 2026-09-30 |
 
@@ -32,7 +32,7 @@
 |------|--------|----------|
 | 扩展点声明 | [`ExtPoint`](z-ext-core/src/main/java/com/zifang/z/ext/annotation/ExtPoint.java) · [`ExtType`](z-ext-core/src/main/java/com/zifang/z/ext/annotation/ExtType.java) | 标在接口上：`value()` 是 point 标识，另有 `description` / `version`（默认 `"1.0.0"`）/ `order` / `type` ∈ SYNC · ASYNC · CHAIN |
 | 实现声明 | [`ExtImpl`](z-ext-core/src/main/java/com/zifang/z/ext/annotation/ExtImpl.java) · [`ExtImplType`](z-ext-core/src/main/java/com/zifang/z/ext/annotation/ExtImplType.java) | `point` + `name` + `type` ∈ PLATFORM · EXTERNAL · CUSTOM，另有 `order` / `enabled` / `condition` / `weight` |
-| 注解扫描装配 | [`EnableExt`](z-ext-core/src/main/java/com/zifang/z/ext/annotation/EnableExt.java) → [`ExtRegistrar`](z-ext-core/src/main/java/com/zifang/z/ext/annotation/ExtRegistrar.java) → [`ExtScanner`](z-ext-core/src/main/java/com/zifang/z/ext/annotation/ExtScanner.java) | `@Import(ExtRegistrar.class)`；Registrar 以 `ImportBeanDefinitionRegistrar` 注册名为 `extScanner` 的 BeanDefinition，Scanner 作 `BeanFactoryPostProcessor` 用 `PathMatchingResourcePatternResolver` + `CachingMetadataReaderFactory` 扫 `basePackages/**/*.class`。**这条链路目前不可用，见「已知边界」第 1 条** |
+| 注解扫描装配 | [`EnableExt`](z-ext-core/src/main/java/com/zifang/z/ext/annotation/EnableExt.java) → [`ExtRegistrar`](z-ext-core/src/main/java/com/zifang/z/ext/annotation/ExtRegistrar.java) → [`ExtScanner`](z-ext-core/src/main/java/com/zifang/z/ext/annotation/ExtScanner.java) | `@Import(ExtRegistrar.class)`；Registrar 以 `ImportBeanDefinitionRegistrar` 注册名为 `extScanner` 的 BeanDefinition，并用 `addPropertyValue("basePackages", …)` 注入 `ExtScanner.setBasePackages(String[])`；Scanner 作 `BeanFactoryPostProcessor` 用 `PathMatchingResourcePatternResolver` + `CachingMetadataReaderFactory` 扫 `basePackages/**/*.class`，把 `@ExtPoint`/`@ExtImpl` 填进 `ExtRegistry`。未指定 `basePackages` 时默认取 `@EnableExt` 所在类的包。`EnableExtIntegrationTest` 起真实 Spring 上下文验证这条链路（显式包 + 默认包两个分支） |
 | 注册中心 | [`ExtRegistry`](z-ext-core/src/main/java/com/zifang/z/ext/core/registry/ExtRegistry.java) | 四张 JVM 级静态表：`EXT_POINT_REGISTRY` / `EXT_IMPL_REGISTRY` / `ACTIVE_IMPL`（均 `ConcurrentHashMap`）+ `LISTENERS`（`CopyOnWriteArrayList`）。`getImplementations` 无实现时返回空列表而非 null；`getEnabledImplementations` 过滤 `enabled` 并按 `order` 升序 |
 | 定义模型 | [`ExtPointDefinition`](z-ext-core/src/main/java/com/zifang/z/ext/core/registry/ExtPointDefinition.java) · [`ExtImplDefinition`](z-ext-core/src/main/java/com/zifang/z/ext/core/registry/ExtImplDefinition.java) | Point 持 `interfaceClass` + 实现列表；Impl 持 `implClass` / `instance` / `rpcAddress` / `rpcPort`（远程实现的路由地址就挂在定义上） |
 | 按接口类反查 | `ExtRegistry.getPointByInterface(Class)` | point 标识是自由文本，调用方常只握有接口 Class；遍历比对 `interfaceClass`，找不到返回 null |
@@ -51,7 +51,7 @@
 **注册的两条路径**：
 
 1. 编程式（当前实测唯一跑通的路径，全部既有测试都走这条）：`ExtRegistry.registerPoint(...)` → `ExtRegistry.registerImpl(...)` → `ExtProxyFactory.createProxy(pointDef)`。
-2. 注解式：`@EnableExt(basePackages = "com.x")` → `ExtRegistrar` → `ExtScanner` 扫字节码填充注册表。`ExtScanner` 只有 `ExtScanner(String[])` 构造和字段，**没有 `basePackages` 的 setter**，而 `ExtRegistrar` 是用 `BeanDefinitionBuilder.addPropertyValue("basePackages", …)` 写这个属性的 ⇒ 实例化该 BeanDefinition 时 Spring 会因属性不可写而失败（`NotWritablePropertyException`）；`@EnableExt.proxyTargetClass` 也没有任何读取方。这条链路 0 测试覆盖。
+2. 注解式：`@EnableExt(basePackages = "com.x")` → `ExtRegistrar` → `ExtScanner` 扫字节码填充注册表。`ExtScanner` 提供 `setBasePackages(String[])`（防御性拷贝），承接 `ExtRegistrar` 的 `BeanDefinitionBuilder.addPropertyValue("basePackages", …)`；未指定 `basePackages` 时 Registrar 默认取注解所在类的包。`EnableExtIntegrationTest` 起真实 `AnnotationConfigApplicationContext` 验证容器能启动、且注册表里确有扫描到的 `@ExtPoint`/`@ExtImpl`。`@EnableExt.proxyTargetClass` 仍无任何读取方（见「已知边界」第 1 条）。
 
 **生命周期**：只有 *注册 → 启用/停用（`enabled` 标志）→ 激活切换（`setActiveImpl` / `getActiveImpl`）→ 清空（`clear()`，注释写明主要给测试用）* 四态。`ExtRegistry.ExtChangeListener` 提供 `onImplRegistered` 与 `onActiveImplChanged` 两个回调（默认空实现，单个监听器抛异常被吞掉不影响其它监听器），这是"热切换"唯一的可观测钩子。**没有 install / start / stop / uninstall，也没有版本协商**（`ExtPointDefinition.version` 只写不读，`getVersion()` 无调用方）。
 
@@ -209,9 +209,9 @@ npm run build    # 产物 dist/
 mvn -pl z-ext-core test
 ```
 
-实测的测试类全在 `z-ext-core/src/test/java/com/zifang/z/ext/`：`ExtRegistryTest`、`ExtRouterTest`、`ExtProxyFactoryTest`、`ExtInvocationHandlerTest`、`ExtIntegrationTest`、`ScriptBackedImplNamingTest`；`test/` 下另备 `OrderService` + PLATFORM/CUSTOM 两个实现与一个 `@ExtPoint` 标注的 `PaymentService` 作夹具。`z-ext-web` / `z-ext-admin` / `_frontend` 无测试。
+实测的测试类全在 `z-ext-core/src/test/java/com/zifang/z/ext/`：`ExtRegistryTest`、`ExtRouterTest`、`ExtProxyFactoryTest`、`ExtInvocationHandlerTest`、`ExtIntegrationTest`、`ScriptBackedImplNamingTest`、`ReadmeClaimsTest`、`EnableExtIntegrationTest`；`test/` 下另备 `OrderService` + PLATFORM/CUSTOM 两个实现与一个 `@ExtPoint` 标注的 `PaymentService` 作夹具，`enableext/` 下另备 `@EnableExt` 两个分支专用的配置类与 `@ExtPoint`/`@ExtImpl` 夹具。`z-ext-web` / `z-ext-admin` / `_frontend` 无测试。
 
-如实说明两处缺口：① 无 Spring 上下文测试 —— `ExtScanner`、`ExtRegistrar`、`@EnableExt`、`ScriptBackedExtImpl` 在测试源码里 0 命中，所以"注解扫描自动注册"这条链路没有任何测试把它跑通过；② `ZRpcExtInvoker` 需要真实 z-rpc 服务端才能端到端验证，纯单测只覆盖到注册表与代理层。没有 `*PerformanceTest.java`。
+如实说明剩余缺口：`EnableExtIntegrationTest` 已起真实 Spring 上下文，把 `@EnableExt → ExtRegistrar → ExtScanner` 两个分支都跑通（显式 `basePackages` + 默认取注解所在类的包），`ExtScanner` / `ExtRegistrar` / `@EnableExt` 不再是零覆盖；但 ① `ScriptBackedExtImpl` 仍无上下文级测试；② `ZRpcExtInvoker` 需要真实 z-rpc 服务端才能端到端验证，纯单测只覆盖到注册表与代理层。没有 `*PerformanceTest.java`。
 
 ---
 
@@ -230,7 +230,7 @@ mvn -Pcentral deploy -DskipTests              # 真发布
 
 ## ⚠️ 已知边界（读代码得出，不是猜测）
 
-1. **`@EnableExt` 目前接不上**：`ExtScanner` 有 `basePackages` 字段和 `ExtScanner(String[])` 构造，却没有 setter，而 `ExtRegistrar` 恰恰用 `addPropertyValue` 写它 ⇒ 属性不可写、Bean 实例化即失败。可用路径是手工 `ExtRegistry.register*`；若要修，把 Registrar 改成用构造参数（`genericBeanDefinition(ExtScanner.class, basePackages)`）而不是属性注入。`@EnableExt.proxyTargetClass` 同样无人读取，代理始终是 JDK 接口代理。
+1. **`@EnableExt.proxyTargetClass` 仍无人读取**：扫描链路已修通 —— `ExtScanner` 补了 `setBasePackages(String[])`（防御性拷贝）承接 `ExtRegistrar` 的 `addPropertyValue`，并有 `EnableExtIntegrationTest` 起真实 Spring 上下文覆盖两个分支；但 `proxyTargetClass` 从注解定义到 Registrar/Scanner 全链路没有读取方，代理始终是 JDK 接口代理。此外 `ExtScanner` 只把 `@ExtPoint`/`@ExtImpl` 定义填进静态 `ExtRegistry`，被扫到的类本身不注册成 Spring Bean。
 2. **注解上写了但框架没实现的字段**：`ExtImpl.condition`（注释宣称支持 SpEL，但全仓 0 处 `ExpressionParser`/`StandardEvaluationContext`，路由从不求值）、`ExtImpl.weight`（只有 getter/setter，无负载均衡）、`ExtType.ASYNC`（`ExtInvocationHandler` 只对 CHAIN 分支特殊处理，ASYNC 与 SYNC 一样同步执行并阻塞）、`ExtPoint.order`（候选排序只用实现自身的 `order`）、`ExtPointDefinition.version`（只写不读）。`ExtInvocationHandler.routeCache` 声明并会被 `clearCache()` 清空，但从没被写入 —— 实际每次调用都重新路由。
 3. **`z-ext-admin` 无法构建**：它依赖 `io.github.yuku123:z-ext-spring-boot-starter:${project.version}`（`${project.version}` = 1.0.0），而该坐标 repo1 实测 404、本地 `~/.m2` 无、`z-boot/z-boot-integration-starters/` 下也无该模块；同时它已不在 `<modules>` 里，也没有任何 Java 源码。它的 `static/` 资产是历史快照。
 4. **本地实现不受 Spring 管理**：`invokeLocal` 走 `getDeclaredConstructor().newInstance()`，实现类里的 `@Autowired` / `@Value` 都不生效；需要依赖注入就自己 `setInstance(bean)`。

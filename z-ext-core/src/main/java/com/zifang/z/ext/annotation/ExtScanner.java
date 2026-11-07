@@ -33,6 +33,17 @@ public class ExtScanner implements BeanFactoryPostProcessor, ApplicationContextA
     public ExtScanner() {
     }
 
+    /**
+     * 由 {@link ExtRegistrar} 经 {@code addPropertyValue("basePackages", …)} 注入。
+     * <p>
+     * 做防御性拷贝：注入的数组与 BeanDefinition 持有的数组不共享同一引用，避免调用方
+     * 后续改动原数组影响扫描范围；显式声明 {@code String[]} 参数类型，保证数组语义不被
+     * 退化成逗号连接的单个字符串。
+     */
+    public void setBasePackages(String[] basePackages) {
+        this.basePackages = basePackages == null ? null : basePackages.clone();
+    }
+
     @Override
     public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
         scanExtPoints();
