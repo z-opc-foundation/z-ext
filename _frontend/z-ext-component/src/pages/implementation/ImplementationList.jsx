@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react'
 import {Button, Form, Input, message, Modal, Select, Space, Switch, Tag} from 'antd'
-import {ApiOutlined, CloudServerOutlined, EditOutlined, LaptopOutlined, PlusOutlined} from '@ant-design/icons'
+import {ApiOutlined, CloudServerOutlined, LaptopOutlined, PlusOutlined} from '@ant-design/icons';
 import {ErrorState, ListTable} from '@yuku123/z-frontend-common/ui'
 import request from '../../services/request'
 
@@ -87,8 +87,7 @@ const ImplementationList = () => {
             render: (_, record) => (
                 <Space>
                     <Button
-                        type="link"
-                        icon={<EditOutlined/>}
+                        type="link" size="small"
                         onClick={() => handleEdit(record)}
                     >
                         编辑

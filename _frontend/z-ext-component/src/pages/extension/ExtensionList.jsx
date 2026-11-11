@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react'
 import {Button, Form, Input, message, Modal, Select, Space} from 'antd'
-import {EditOutlined, PlusOutlined, SwapOutlined} from '@ant-design/icons'
+import {PlusOutlined} from '@ant-design/icons';
 import {ErrorState, ListTable} from '@yuku123/z-frontend-common/ui'
 import request from '../../services/request'
 import ExtensionPointTag from './ExtensionPointTag'
@@ -63,15 +63,13 @@ const ExtensionList = () => {
             render: (_, record) => (
                 <Space>
                     <Button
-                        type="link"
-                        icon={<SwapOutlined/>}
+                        type="link" size="small"
                         onClick={() => handleSwitch(record)}
                     >
                         切换
                     </Button>
                     <Button
-                        type="link"
-                        icon={<EditOutlined/>}
+                        type="link" size="small"
                         onClick={() => handleEdit(record)}
                     >
                         编辑
