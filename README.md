@@ -15,10 +15,10 @@
 | **仓库** | `z-ext`（origin `git@github.com:z-opc-foundation/z-ext.git`，分支 `main`） |
 | **Maven 坐标** | `io.github.yuku123:z-ext`（聚合 POM）· `io.github.yuku123:z-ext-core`（唯一有 jar 的构件） |
 | **当前版本** | `1.0.1` 写在根 POM `<version>`，两个子模块 `<parent>` 逐字重复同一版本号——本仓**没有**用 `<revision>` 占位（尽管继承了带 CI-friendly 约定的 `z-boot-parent`） |
-| **父项目** | `io.github.yuku123:z-boot-parent:1.2.2`，`<relativePath/>` 留空（parent 在 repo1，不在磁盘）；第三方地板与兄弟仓权威表均已并入 parent 自身（`z-boot-dependencies` / `z-boot-fleet` 两个文件夹随 2026-10-08 火车制拓扑退役） |
+| **父项目** | `io.github.yuku123:z-boot-parent:1.2.4`，`<relativePath/>` 留空（parent 在 repo1，不在磁盘）；第三方地板与兄弟仓权威表均已并入 parent 自身（`z-boot-dependencies` / `z-boot-fleet` 两个文件夹随 2026-10-08 火车制拓扑退役） |
 | **Maven Central** | 已发布（2026-09-30，`maven-metadata` latest=release=`1.0.0`）：`z-ext:1.0.0` pom 200；`z-ext-core:1.0.0` pom/jar/-sources/-javadoc/.asc 全 200。404 未发布：`z-ext-web:1.0.0`（被 `central` profile 的 `excludeArtifacts` 点名排除）、`z-ext-frontend`（不在 reactor）、旧 namespace `com.zifang:z-ext` / `com.zifang:z-ext-core` |
 | **默认端口** | 无 —— 本仓不启 HTTP 服务（实测：`application*.yml` 0 个、`@RestController`/`@RequestMapping` 0 处）。前端 dev server 监听 `3003`，把 `/api` 代理到 `http://localhost:8888`（由宿主应用提供） |
-| **运行口径** | Java 17（**当前生效**：`z-boot-parent:1.2.2` 下发 `maven.compiler.source/target=17` 与 `-parameters`，对应 Spring 6.1 / Boot 3.3 地板）· Spring Framework 6.1.21（`spring-boot-dependencies:3.3.13` BOM 口径）；`z-ext-core` 只依赖 spring-context/beans/core/expression，**不依赖 Spring Boot**（仅 test scope 引 `spring-boot-starter-test`）。根 POM 注释里残留的 `source/target=8` 是 parent 升级前（1.0.19 时代）的历史口径，已不生效 |
+| **运行口径** | Java 17（**当前生效**：`z-boot-parent:1.2.4` 下发 `maven.compiler.source/target=17` 与 `-parameters`，对应 Spring 6.1 / Boot 3.3 地板）· Spring Framework 6.1.21（`spring-boot-dependencies:3.3.13` BOM 口径）；`z-ext-core` 只依赖 spring-context/beans/core/expression，**不依赖 Spring Boot**（仅 test scope 引 `spring-boot-starter-test`）。根 POM 注释里残留的 `source/target=8` 是 parent 升级前（1.0.19 时代）的历史口径，已不生效 |
 | **许可证** | MIT（根 [`LICENSE`](LICENSE) 为 MIT 全文，根 POM `<licenses>` 声明 MIT License） |
 | **最近更新** | 2026-09-30 |
 
@@ -63,7 +63,7 @@
 
 ```
 z-ext/
-├── pom.xml                 聚合 + 发布 POM：parent z-boot-parent:1.2.2、version 1.0.0、
+├── pom.xml                 聚合 + 发布 POM：parent z-boot-parent:1.2.4、version 1.0.0、
 │                           <modules> = z-ext-core + z-ext-web（_frontend 已注释、admin 已废弃）、central profile
 ├── LICENSE                 MIT 全文
 ├── README.md               本文档
@@ -111,7 +111,7 @@ mvn clean install -DskipTests      # reactor = z-ext-core + z-ext-web
 mvn -q -pl z-ext-core -am install  # 只要核心 jar
 ```
 
-前提：本地或镜像能解析 `io.github.yuku123:z-boot-parent:1.2.2`（`<relativePath/>` 为空，parent 不在磁盘上）。仓库根不存在 `../pom.xml`，任何"在 z-opc 父项目下编译"的说法都不成立。
+前提：本地或镜像能解析 `io.github.yuku123:z-boot-parent:1.2.4`（`<relativePath/>` 为空，parent 不在磁盘上）。仓库根不存在 `../pom.xml`，任何"在 z-opc 父项目下编译"的说法都不成立。
 
 ### 作为依赖引入
 
@@ -244,7 +244,7 @@ mvn -Pcentral deploy -DskipTests              # 真发布
 | 提交 | 内容 |
 |------|------|
 | `4f40b8f` | 坐标从 `com.zifang` 换成 `io.github.yuku123:1.0.0`，`com.zifang:z-rpc-core` 幻影依赖换 `z-rpc-remoting`（类集与 `setParameters`→`setArguments` 签名比对后改的），补中央发布通道 |
-| `673fb6e` · `44dc640` | 消费入口抬到 `z-boot-parent:1.0.21`（组织消费者轮，先前是 1.0.19），删掉仓内所有字面版本钉 |
+| `673fb6e` · `44dc640` | 消费入口抬到 `z-boot-parent:1.2.4`（组织消费者轮，先前是 1.0.19），删掉仓内所有字面版本钉 |
 | `67b6615` | `ExtProxyFactory.createProxy(String)` 支持传扩展点接口的类型描述符，按接口类反查扩展点 |
 | `6ccab93` | 对齐 `z-boot-dependencies` 口径（netty 4.1.138.Final） |
 | 2026-09-06 | 从 `idea_workplace/z-opc` monorepo 拆出独立仓（历史日期，见 `01-module-structure.md`） |
