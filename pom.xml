@@ -31,7 +31,7 @@
          一起换，全组织 pom grep 实测除 z-opc 副本外没有别的消费者。 -->
     <groupId>io.github.yuku123</groupId>
     <artifactId>z-ext</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
     <packaging>pom</packaging>
 
     <!-- 本仓自己的身份元数据必须自己写：继承链（z-boot-parent → z-boot-dependencies → z-boot 根 pom）
@@ -84,8 +84,14 @@
              （已废弃、不在 reactor），留着这条只会让发布构建去 nodejs.org 下 node；
              仓里已提交的 static 资产（git ls-files 实测 6 个文件）不受影响。同做法见 z-config/pom.xml。 -->
         <!-- <module>_frontend</module> -->
-        <!-- z-ext-spring-boot-starter 已迁移到 z-boot/z-boot-integration-starters -->
-        <!-- z-ext-admin 已废弃: 排除 build, 避免污染 -->
+        <!-- z-ext-spring-boot-starter：2026-11-18 起是本仓真实模块（自动装配 + 嵌入式控制面）。
+             此前这里的注释写「已迁移到 z-boot/z-boot-integration-starters」——不实，那边从来没有
+             ext 模块（目录与 <modules> 双实测），z-ext-admin 那条依赖因此一直解析不到。 -->
+        <module>z-ext-spring-boot-starter</module>
+        <!-- z-ext-admin：2026-11-18 起回归 reactor（控制台 standalone 应用，内嵌 starter 控制面 +
+             实例聚合代理）。此前它不在 <modules> 里，那格 z-ext-spring-boot-starter 依赖因此一直是
+             幻影引用。它不发 Maven Central（见 central profile 的 excludeArtifacts）。 -->
+        <module>z-ext-admin</module>
         <module>z-ext-web</module>
     </modules>
 
@@ -102,7 +108,7 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- 自家 4 个 reactor 坐标钉 ${project.version}（z-boot README「消费模型」步骤 4）。
+            <!-- 自家 5 个 reactor 坐标钉 ${project.version}（z-boot README「消费模型」步骤 4）。
                  这条不是装饰：继承来的 DM 会改写**传递依赖**的版本，仓外只要有一格存在，
                  旧发布件的字节码就能当 sibling 编进本仓产物。实测 fleet 里没有任何 z-ext 格
                  （repo1 ranged GET：io.github.yuku123:z-ext / z-ext-core 与 com.zifang:z-ext /
@@ -117,6 +123,11 @@
             <dependency>
                 <groupId>io.github.yuku123</groupId>
                 <artifactId>z-ext-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.yuku123</groupId>
+                <artifactId>z-ext-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -201,16 +212,10 @@
     <build>
         <pluginManagement>
             <plugins>
-                <!-- 本仓把 spring-boot-maven-plugin 钉在 2.7.12，而 parent 的 pluginManagement
-                     下发 ${spring-boot.version}=2.7.18（旧幻影父链同样下发 2.7.18，即这一格一直是
-                     本仓自己盖在父链前面的）。子 pom 的 pluginManagement 压过继承来的 ⇒ 删掉就
-                     等于把 repackage 插件从 2.7.12 抬到 2.7.18，那是另一个决定，不在这里顺手做。
-                     使用方只有不在 reactor 里的 z-ext-admin。 -->
-                <plugin>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-maven-plugin</artifactId>
-                    <version>2.7.12</version>
-                </plugin>
+                <!-- spring-boot-maven-plugin 的钉版（2.7.12）删掉：那是 Boot 2.7 时代为 admin 盖的
+                     本仓钉，parent 升到 3.5 地板后它会把 admin 的 repackage 错成 2.7 版插件；
+                     现在面值随 parent 的 pluginManagement 下发，与 spring-boot-dependencies 同代。
+                     使用方只有 z-ext-admin（reactor 内，2026-11-18 回归）。 -->
             </plugins>
         </pluginManagement>
 
@@ -386,7 +391,9 @@
                                   -->
                             <excludeArtifacts>
                                 <excludeArtifact>z-ext-web</excludeArtifact>
-                                                            <excludeArtifact>z-ext-frontend</excludeArtifact>
+                                <!-- z-ext-admin：控制台 standalone 应用（含前端内嵌），不是对外构件 -->
+                                <excludeArtifact>z-ext-admin</excludeArtifact>
+                                <excludeArtifact>z-ext-frontend</excludeArtifact>
                             </excludeArtifacts>
                             <waitUntil>uploaded</waitUntil>
                             <waitMaxTime>1800</waitMaxTime>

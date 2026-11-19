@@ -1,38 +1,35 @@
 import { useState } from 'react'
 import { Button, Card, Form, Input, message } from 'antd'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
+import request from '../services/request'
 
 /**
- * 登录页（lead 008 §16）—— CTC/SSO 接入前的 mock 登录。
+ * 登录页 —— 走 z-ext-admin 控制台的真实会话（POST /api/auth/login，Bearer 令牌）。
  *
- * mock 账号不写死在仓里（001_凭证管理规范）：宿主在构建期注入
- * VITE_MOCK_USER / VITE_MOCK_PASSWORD，未注入时页面直接说明「未配置 mock 账号」。
+ * 控制台凭据不落仓：部署侧用环境变量 ZEXT_ADMIN_USERNAME / ZEXT_ADMIN_PASSWORD 注入，
+ * 未配置时后端对任何登录返回 503（页面如实提示，不做本地 mock —— mock 口令禁令口径）。
  */
-export default function LoginPage({mockAuth} = {}) {
-    // mock 账号由宿主（suit）在构建期取自 env 后经 prop 注入：组件包以 library 模式构建时
-    // import.meta.env 会被内联成空串，故 prop 优先、env 兜底。
-    const MOCK_AUTH = mockAuth || {
-        username: import.meta.env.VITE_MOCK_USER || '',
-        password: import.meta.env.VITE_MOCK_PASSWORD || '',
-        user: { name: import.meta.env.VITE_MOCK_USER || '', role: '管理员' },
-    }
+export default function LoginPage() {
     const [loading, setLoading] = useState(false)
 
     const handleSubmit = async (values) => {
         setLoading(true)
         try {
-            if (!MOCK_AUTH.username || !MOCK_AUTH.password) {
-                message.error('未配置 mock 账号（VITE_MOCK_USER / VITE_MOCK_PASSWORD）')
-                return
-            }
-            if (values.username === MOCK_AUTH.username && values.password === MOCK_AUTH.password) {
-                localStorage.setItem('token', 'mock-' + MOCK_AUTH.username)
-                localStorage.setItem('userInfo', JSON.stringify(MOCK_AUTH.user))
-                message.success('登录成功（mock 模式，待 CTC/SSO 接入）')
-                window.location.href = '/z-ext/home'
-            } else {
-                message.error('用户名或密码错误')
-            }
+            const res = await request.post('/auth/login', {
+                username: values.username,
+                password: values.password,
+            })
+            // 后端返回裸 {token, user:{username}}（无包装），拦截器原样透传；
+            // AppLayout 读 user.name，归一化成 {name}
+            const user = res.user || {}
+            localStorage.setItem('zext_token', res.token)
+            localStorage.setItem('zext_user', JSON.stringify(
+                { ...user, name: user.name || user.username || values.username }))
+            message.success('登录成功')
+            window.location.href = '/z-ext/home'
+        } catch (e) {
+            const msg = e?.response?.data?.message || e?.message || '登录失败'
+            message.error(msg)
         } finally {
             setLoading(false)
         }
@@ -67,7 +64,7 @@ export default function LoginPage({mockAuth} = {}) {
                         </Button>
                     </Form.Item>
                     <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 12 }}>
-                        Mock 模式：账号由宿主注入（VITE_MOCK_USER / VITE_MOCK_PASSWORD）
+                        账号由部署侧环境变量注入（ZEXT_ADMIN_USERNAME / ZEXT_ADMIN_PASSWORD）
                     </div>
                 </Form>
             </Card>

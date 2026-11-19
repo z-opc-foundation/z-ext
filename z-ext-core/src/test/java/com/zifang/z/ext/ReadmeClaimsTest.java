@@ -141,12 +141,13 @@ class ReadmeClaimsTest {
         final String viteProxyTarget;
         final boolean hasFrontendComponent;
         final boolean hasFrontendSuit;
+        final int adminPort;
         final List<String> namedTestClasses;
 
         Facts(Path root, String ownVersion, boolean hasRevision, long coreMainClasses,
               long runtimeConfigFiles, long controllerAnnotations, List<String> webMainClasses,
               String webMainBody, int vitePort, String viteProxyTarget, boolean hasFrontendComponent,
-              boolean hasFrontendSuit, List<String> namedTestClasses) {
+              boolean hasFrontendSuit, int adminPort, List<String> namedTestClasses) {
             this.root = root;
             this.ownVersion = ownVersion;
             this.hasRevision = hasRevision;
@@ -159,6 +160,7 @@ class ReadmeClaimsTest {
             this.viteProxyTarget = viteProxyTarget;
             this.hasFrontendComponent = hasFrontendComponent;
             this.hasFrontendSuit = hasFrontendSuit;
+            this.adminPort = adminPort;
             this.namedTestClasses = namedTestClasses;
         }
     }
@@ -225,10 +227,19 @@ class ReadmeClaimsTest {
         Matcher tm = Pattern.compile("proxy:\\s*\\{[^}]*target:\\s*'([^']+)'").matcher(vite);
         String proxyTarget = tm.find() ? tm.group(1) : "";
 
+        Path adminYml = root.resolve("z-ext-admin/src/main/resources/application.yml");
+        int adminPort = -1;
+        if (Files.isRegularFile(adminYml)) {
+            Matcher am = Pattern.compile("(?m)^\\s*port:\\s*(\\d+)").matcher(read(adminYml));
+            if (am.find()) {
+                adminPort = Integer.parseInt(am.group(1));
+            }
+        }
+
         return new Facts(root, ownVersion, hasRevision, coreMain, runtimeConfig, controllerAnnotations,
                 webMain, webMainBody, vitePort, proxyTarget,
                 Files.isDirectory(root.resolve("_frontend/z-ext-component")),
-                Files.isDirectory(root.resolve("_frontend/z-ext-suit")),
+                Files.isDirectory(root.resolve("_frontend/z-ext-suit")), adminPort,
                 new ArrayList<>());
     }
 
@@ -258,34 +269,38 @@ class ReadmeClaimsTest {
         assertEquals(f.coreMainClasses, Long.parseLong(cm.group(1)),
                 "z-ext-core 的 main 类数对不上：README 写 " + cm.group(1) + "，实数是 " + f.coreMainClasses);
 
-        // 主张 3b：正文里「全部实现都在 …（N 个 main 类）」是同一个数的**第二处表述**。
+        // 主张 3b：正文里「核心实现全部在 …（N 个 main 类）」是同一个数的**第二处表述**。
         //         少钉这一条，结构树那行改了、这句不改，就成了没人管的一句旧话。
-        String implLine = uniqueLine(readme, Pattern.compile("全部实现都在"), "实现位置");
+        String implLine = uniqueLine(readme, Pattern.compile("核心实现全部在"), "实现位置");
         Matcher im = Pattern.compile("（(\\d+) 个 main 类").matcher(implLine);
         if (!im.find()) {
-            throw new AssertionError("README 的「全部实现都在」那一行抠不出「（N 个 main 类」：" + implLine);
+            throw new AssertionError("README 的「核心实现全部在」那一行抠不出「（N 个 main 类」：" + implLine);
         }
         assertEquals(f.coreMainClasses, Long.parseLong(im.group(1)),
                 "z-ext-core 的 main 类数对不上：README 正文写 " + im.group(1) + "，实数是 " + f.coreMainClasses);
 
-        // 主张 4：本仓不启 HTTP 服务 —— 否定式断言，要靠「真的一个都没有」来证
+        // 主张 4：控制台端口 ⟺ z-ext-admin application.yml 的 server.port
+        // （本仓唯一启 HTTP 服务的是 admin 控制台；README 默认端口行里第一处「监听 N」必须是它）
         String portLine = uniqueLine(readme, Pattern.compile("\\*\\*默认端口\\*\\*"), "默认端口");
-        assertTrue(portLine.contains("无"),
-                "README 的「默认端口」那一行没写「无」：" + portLine);
+        Matcher pm = Pattern.compile("监听 `(\\d+)`").matcher(portLine);
+        if (!pm.find()) {
+            throw new AssertionError("README 的「默认端口」那一行抠不出「监听 N」：" + portLine);
+        }
+        assertEquals(f.adminPort, Integer.parseInt(pm.group(1)),
+                "控制台端口对不上：README 写 " + pm.group(1) + "，admin application.yml 是 " + f.adminPort);
         assertEquals(0L, f.controllerAnnotations,
-                "README 说本仓没有 @RestController/@RequestMapping，但源码里找到了 " + f.controllerAnnotations + " 处");
-        assertEquals(0L, f.runtimeConfigFiles,
-                "README 说本仓没有 application*.yml / logback.xml，但盘面上有 " + f.runtimeConfigFiles + " 个");
+                "README 说 core/web 没有 @RestController/@RequestMapping，但源码里找到了 "
+                        + f.controllerAnnotations + " 处");
 
-        // 主张 5：全仓 0 个 @Controller / @RequestMapping
-        String apiLine = uniqueLine(readme, Pattern.compile("全仓 0 个 `@Controller`"), "HTTP API 段");
-        assertTrue(apiLine.contains("@RequestMapping"),
-                "README 的 HTTP API 段没同时点名 @RequestMapping：" + apiLine);
+        // 主张 5：core / web 0 个 @Controller / @RequestMapping（HTTP API 在 starter 与 admin 里）
+        String apiLine = uniqueLine(readme, Pattern.compile("仍然 0 个 `@Controller`"), "HTTP API 段");
+        assertTrue(apiLine.contains("@Controller") && apiLine.contains("starter"),
+                "README 的 HTTP API 段没说明接口面由 starter 提供：" + apiLine);
         assertEquals(0L, f.controllerAnnotations,
-                "README 说全仓 0 个 @Controller/@RequestMapping，实数是 " + f.controllerAnnotations);
+                "README 说 core/web 0 个 @Controller/@RequestMapping，实数是 " + f.controllerAnnotations);
 
-        // 主张 6：application*.yml / logback.xml 实测 0 个
-        String cfgLine = uniqueLine(readme, Pattern.compile("`application\\*\\.yml` / `logback\\.xml` 实测"), "运行时配置");
+        // 主张 6：application*.yml / logback.xml 实测个数（现口径：只有 admin 一份 application.yml）
+        String cfgLine = uniqueLine(readme, Pattern.compile("全仓实测 \\d+ 个 `application"), "运行时配置");
         Matcher zm = Pattern.compile("实测 (\\d+) 个").matcher(cfgLine);
         if (!zm.find()) {
             throw new AssertionError("README 的运行时配置那一行抠不出个数：" + cfgLine);

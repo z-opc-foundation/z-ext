@@ -3,15 +3,11 @@ import {Card, Col, Row, Statistic, Table, Tag} from 'antd'
 import {ApiOutlined, CheckCircleOutlined, ExperimentOutlined, SwapOutlined} from '@ant-design/icons'
 import {DEFAULT_PAGINATION, EmptyState, ErrorState} from '@yuku123/z-frontend-common/ui'
 import request from '../services/request'
+import {extPath, InstanceSelect, unwrapList} from '../extension/InstanceSelect'
 
 const Dashboard = () => {
-    const [stats, setStats] = useState({
-        extPointCount: 0,
-        implCount: 0,
-        activeImplCount: 0,
-        switchCount: 0,
-    })
-    const [recentActivities, setRecentActivities] = useState([])
+    const [points, setPoints] = useState([])
+    const [impls, setImpls] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
@@ -23,26 +19,11 @@ const Dashboard = () => {
         setLoading(true)
         try {
             const [pointsRes, implsRes] = await Promise.all([
-                request.get('/api/ext/points'),
-                request.get('/api/ext/implementations'),
+                request.get(extPath('/ext/points')),
+                request.get(extPath('/ext/implementations')),
             ])
-
-            const points = pointsRes.data || []
-            const impls = implsRes.data || []
-
-            setStats({
-                extPointCount: points.length,
-                implCount: impls.length,
-                activeImplCount: impls.filter(i => i.enabled).length,
-                switchCount: 0,
-            })
-
-            // 模拟最近活动
-            setRecentActivities([
-                {id: 1, action: '注册实现', target: 'order.create -> alipay', time: '2分钟前'},
-                {id: 2, action: '切换实现', target: 'payment.process -> wechat', time: '1小时前'},
-                {id: 3, action: '新增扩展点', target: 'user.validate', time: '3小时前'},
-            ])
+            setPoints(unwrapList(pointsRes))
+            setImpls(unwrapList(implsRes))
             setError(null)
         } catch (e) {
             // 保留原始 error 对象：ErrorState 会优先取后端 response.data.message，
@@ -53,35 +34,43 @@ const Dashboard = () => {
         }
     }
 
-    const activityColumns = [
+    // 激活中的扩展点：有显式激活实现（activeImpl）的，即介入生效中的点
+    const activated = points.filter((p) => p.activeImpl)
+
+    const pointColumns = [
         {
-            title: '操作',
-            dataIndex: 'action',
-            key: 'action',
-            render: (action) => {
-                const colorMap = {
-                    '注册实现': 'green',
-                    '切换实现': 'blue',
-                    '新增扩展点': 'purple',
-                }
-                return <Tag color={colorMap[action]}>{action}</Tag>
-            },
+            title: '扩展点',
+            dataIndex: 'point',
+            key: 'point',
         },
         {
-            title: '目标',
-            dataIndex: 'target',
-            key: 'target',
+            title: '类型',
+            dataIndex: 'type',
+            key: 'type',
+            width: 100,
+            render: (type) => <Tag>{type}</Tag>,
         },
         {
-            title: '时间',
-            dataIndex: 'time',
-            key: 'time',
-            width: 120,
+            title: '激活实现',
+            dataIndex: 'activeImpl',
+            key: 'activeImpl',
+            width: 180,
+            render: (v) => <Tag color="green">{v}</Tag>,
+        },
+        {
+            title: '实现数',
+            key: 'implCount',
+            width: 90,
+            render: (_, record) => record.implementations?.length || 0,
         },
     ]
 
     return (
         <div>
+            <div style={{marginBottom: 16}}>
+                <InstanceSelect onChange={() => fetchDashboardData()}/>
+            </div>
+
             {error && (
                 <div style={{marginBottom: 16}}>
                     <ErrorState error={error} title="获取扩展点概览失败" onRetry={() => fetchDashboardData()}/>
@@ -92,7 +81,7 @@ const Dashboard = () => {
                     <Card>
                         <Statistic
                             title="扩展点数量"
-                            value={stats.extPointCount}
+                            value={points.length}
                             prefix={<ApiOutlined/>}
                         />
                     </Card>
@@ -101,7 +90,7 @@ const Dashboard = () => {
                     <Card>
                         <Statistic
                             title="实现数量"
-                            value={stats.implCount}
+                            value={impls.length}
                             prefix={<ExperimentOutlined/>}
                         />
                     </Card>
@@ -109,8 +98,8 @@ const Dashboard = () => {
                 <Col span={6}>
                     <Card>
                         <Statistic
-                            title="激活实现"
-                            value={stats.activeImplCount}
+                            title="启用实现"
+                            value={impls.filter((i) => i.enabled).length}
                             prefix={<CheckCircleOutlined/>}
                             valueStyle={{color: '#3f8600'}}
                         />
@@ -119,8 +108,8 @@ const Dashboard = () => {
                 <Col span={6}>
                     <Card>
                         <Statistic
-                            title="切换次数"
-                            value={stats.switchCount}
+                            title="激活中的扩展点"
+                            value={activated.length}
                             prefix={<SwapOutlined/>}
                             valueStyle={{color: '#cf1322'}}
                         />
@@ -129,14 +118,16 @@ const Dashboard = () => {
             </Row>
 
             <div style={{marginTop: 24}}>
-                <Card title="最近活动">
+                {/* 「最近活动」假数据已撤：控制台不存审计日志，只展示真实在激活中的扩展点。
+                    操作审计靠部署侧网关日志（见 README「已知边界」）。 */}
+                <Card title="激活中的扩展点（介入生效中）">
                     <Table
-                        columns={activityColumns}
-                        dataSource={recentActivities}
+                        columns={pointColumns}
+                        dataSource={activated}
                         loading={loading}
                         rowKey="id"
                         pagination={DEFAULT_PAGINATION}
-                        locale={{emptyText: <EmptyState title="暂无最近活动" description="接口返回空列表" size="sm"/>}}
+                        locale={{emptyText: <EmptyState title="没有显式激活的扩展点" description="全部按默认路由（order / 类型优先）执行" size="sm"/>}}
                     />
                 </Card>
             </div>

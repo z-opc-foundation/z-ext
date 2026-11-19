@@ -4,6 +4,7 @@ import com.zifang.z.ext.core.registry.ExtPointDefinition;
 import com.zifang.z.ext.core.registry.ExtRegistry;
 
 import java.lang.reflect.Proxy;
+import java.util.function.Consumer;
 
 /**
  * 扩展代理工厂
@@ -43,6 +44,22 @@ public class ExtProxyFactory {
     }
 
     /**
+     * 根据扩展点定义创建代理，并允许调用方定制 handler（换路由策略、配置异步执行器等）。
+     * <p>
+     * starter 侧的代理构建器靠这个入口把 Spring 容器里装配的 router / executor 注进 handler。
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T createProxy(ExtPointDefinition pointDef,
+                                    Consumer<ExtInvocationHandler> handlerCustomizer) {
+        Class<T> interfaceClass = (Class<T>) pointDef.getInterfaceClass();
+        ExtInvocationHandler handler = new ExtInvocationHandler(pointDef);
+        if (handlerCustomizer != null) {
+            handlerCustomizer.accept(handler);
+        }
+        return createProxy(interfaceClass, handler);
+    }
+
+    /**
      * 根据扩展点标识创建代理
      * <p>
      * 入参既可以是扩展点标识（如 {@code "order.service"}），也可以是扩展点接口的类型描述符
@@ -59,6 +76,17 @@ public class ExtProxyFactory {
             throw new IllegalArgumentException("Extension point not found: " + point);
         }
         return createProxy(pointDef);
+    }
+
+    /**
+     * 根据扩展点标识创建代理，并允许定制 handler（见 {@link #createProxy(ExtPointDefinition, Consumer)}）。
+     */
+    public static <T> T createProxy(String point, Consumer<ExtInvocationHandler> handlerCustomizer) {
+        ExtPointDefinition pointDef = resolvePoint(point);
+        if (pointDef == null) {
+            throw new IllegalArgumentException("Extension point not found: " + point);
+        }
+        return createProxy(pointDef, handlerCustomizer);
     }
 
     /**

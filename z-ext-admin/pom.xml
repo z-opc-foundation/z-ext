@@ -7,12 +7,13 @@
     <parent>
         <groupId>io.github.yuku123</groupId>
         <artifactId>z-ext</artifactId>
-        <version>1.0.1</version>
+        <version>1.1.0</version>
     </parent>
 
     <artifactId>z-ext-admin</artifactId>
     <name>z-ext :: admin</name>
-    <description>z-ext 管理控制台独立启动器（standalone admin 应用）——含前端内嵌，不发 Maven Central。</description>
+    <description>z-ext 管理控制台独立启动器（standalone admin 应用）——聚合各业务实例的嵌入式控制面，
+        提供扩展点查看 / 激活切换 / 实现启停；含前端内嵌，不发 Maven Central。</description>
 
     <dependencies>
         <!-- Spring Boot Web -->
@@ -28,24 +29,42 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- z-ext-spring-boot-starter -->
+        <!-- z-ext-spring-boot-starter：提供本机 /api/ext/** 与注册表装配 -->
         <dependency>
             <groupId>io.github.yuku123</groupId>
             <artifactId>z-ext-spring-boot-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Knife4j API文档 -->
+        <!-- Knife4j API文档。自带 springdoc-openapi-starter-common 2.0.4 会与 parent DM
+             下发的 webmvc-ui 2.6.0 混版（旧版的 AutoConfiguration.imports 指向 2.6.0 里
+             已不存在的 SpringDocUIConfiguration ⇒ 启动即炸），排除之，让 common 统一走
+             webmvc-ui 传递的 2.6.0。 -->
+        <!-- knife4j 4.1.0 直依赖的 springdoc-openapi-starter-common 2.0.4 与 parent DM
+             下发的 webmvc-ui 2.6.0 混版（2.0.4 缺 SpringDocUIConfiguration，而 2.6.0 的
+             AutoConfiguration.imports 引用它 ⇒ 启动即炸）。直接条目按坐标钉 2.6.0
+             （nearest-wins 压过 knife4j 的传递 2.0.4）；webflux 系 2.0.4 整族排掉。 -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-common</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-                <version>4.1.0</version>
-            </dependency>
+            <version>4.1.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springdoc</groupId>
+                    <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
-        <!-- 数据源统一收口为 z-boot-datasource-starter（替代 mysql + druid + mybatis-plus） -->
         <dependency>
-            <groupId>io.github.yuku123</groupId>
-            <artifactId>z-boot-datasource-starter</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>
@@ -55,6 +74,15 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <!-- parent 链不绑 repackage，不显式声明打出来的是普通薄 jar（无主清单属性，
+                         java -jar 起不来）。控制台要 standalone 跑，必须 repackage 成 fat jar -->
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <!--            &lt;!&ndash; 前端构建插件 &ndash;&gt;-->

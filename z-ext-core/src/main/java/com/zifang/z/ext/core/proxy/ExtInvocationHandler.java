@@ -2,6 +2,7 @@ package com.zifang.z.ext.core.proxy;
 
 import com.zifang.z.ext.annotation.ExtImplType;
 import com.zifang.z.ext.annotation.ExtType;
+import com.zifang.z.ext.core.context.ExtContextHolder;
 import com.zifang.z.ext.core.registry.ExtImplDefinition;
 import com.zifang.z.ext.core.registry.ExtPointDefinition;
 import com.zifang.z.ext.core.registry.ExtRegistry;
@@ -9,6 +10,8 @@ import com.zifang.z.ext.core.router.ExtRouter;
 import com.zifang.z.ext.core.router.ExtRouterContext;
 import com.zifang.z.ext.rpc.client.ExtRpcInvoker;
 import com.zifang.z.ext.rpc.client.ExtRpcInvokerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -16,12 +19,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 
 /**
  * 扩展调用处理器
  * 代理的核心，负责路由选择和执行
  */
 public class ExtInvocationHandler implements InvocationHandler {
+
+    private static final Logger log = LogManager.getLogger(ExtInvocationHandler.class);
 
     /**
      * 扩展点定义
@@ -35,6 +41,13 @@ public class ExtInvocationHandler implements InvocationHandler {
      * 路由策略
      */
     private ExtRouter router;
+    /**
+     * 异步执行器。
+     * <p>
+     * {@link ExtType#ASYNC} 的扩展点由它决定是否真的异步：未设置时退化为同步执行
+     * （与框架早期行为一致，避免存量扩展点被静默改成 fire-and-forget）。
+     */
+    private volatile Executor asyncExecutor;
 
     public ExtInvocationHandler(ExtPointDefinition pointDef) {
         this.pointDef = pointDef;
@@ -49,6 +62,8 @@ public class ExtInvocationHandler implements InvocationHandler {
 
         // 构建路由上下文
         ExtRouterContext context = new ExtRouterContext(method.getName(), args);
+        // 线程上下文里的租户/灰度标签等属性并入路由上下文，供条件表达式引用
+        context.getAttributes().putAll(ExtContextHolder.getAll());
 
         // 获取路由结果
         List<ExtImplDefinition> impls = getRoutedImplementations(context);
@@ -61,6 +76,8 @@ public class ExtInvocationHandler implements InvocationHandler {
         ExtType extType = pointDef.getType();
         if (extType == ExtType.CHAIN) {
             return invokeChain(method, args, impls);
+        } else if (extType == ExtType.ASYNC && asyncExecutor != null) {
+            return invokeAsync(method, args, impls);
         } else {
             return invokeOne(method, args, impls.get(0));
         }
@@ -127,13 +144,58 @@ public class ExtInvocationHandler implements InvocationHandler {
 
     /**
      * 链式执行（CHAIN类型）
+     * <p>
+     * 失败隔离：单个实现抛异常只记日志、继续跑后续实现。CHAIN 的典型场景是
+     * 「同一事实的多个独立消费者」（如支付完成 → 应收登记 + 许可签发），
+     * 一个消费者挂掉不能吞掉其余消费者的副作用，也不能把异常上抛炸掉调用方主流程。
+     * 返回值口径：最后一个<b>成功</b>实现的结果（与逐个覆盖写的历史行为一致）。
      */
     private Object invokeChain(Method method, Object[] args, List<ExtImplDefinition> impls) throws Throwable {
         Object result = null;
         for (ExtImplDefinition impl : impls) {
-            result = invokeOne(method, args, impl);
+            try {
+                result = invokeOne(method, args, impl);
+            } catch (Throwable e) {
+                log.error("[z-ext] 链式扩展点单个实现失败（继续执行后续实现）: point={}, impl={}",
+                        pointDef.getPoint(), impl.getName(), e);
+            }
         }
         return result;
+    }
+
+    /**
+     * 异步执行（ASYNC类型且配置了异步执行器）
+     * <p>
+     * fire-and-forget：立即返回 {@code null}，异常只记日志不抛回调用方。
+     */
+    private Object invokeAsync(Method method, Object[] args, List<ExtImplDefinition> impls) {
+        try {
+            asyncExecutor.execute(() -> {
+                try {
+                    for (ExtImplDefinition impl : impls) {
+                        invokeOne(method, args, impl);
+                    }
+                } catch (Throwable e) {
+                    log.error("[z-ext] 异步扩展点执行失败: point={}, method={}",
+                            pointDef.getPoint(), method.getName(), e);
+                }
+            });
+        } catch (RuntimeException e) {
+            log.error("[z-ext] 异步扩展点提交失败: point={}, method={}",
+                    pointDef.getPoint(), method.getName(), e);
+        }
+        return null;
+    }
+
+    /**
+     * 设置异步执行器；设置后 {@link ExtType#ASYNC} 的扩展点不再阻塞调用方。
+     */
+    public void setAsyncExecutor(Executor asyncExecutor) {
+        this.asyncExecutor = asyncExecutor;
+    }
+
+    public Executor getAsyncExecutor() {
+        return asyncExecutor;
     }
 
     /**

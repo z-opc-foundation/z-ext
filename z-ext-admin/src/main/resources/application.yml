@@ -1,0 +1,18 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: z-ext-admin
+
+z:
+  ext:
+    console:
+      # 凭据只经环境变量注入，不落仓；任一为空则拒绝所有登录
+      username: ${ZEXT_ADMIN_USERNAME:}
+      password: ${ZEXT_ADMIN_PASSWORD:}
+      # Z-Config 命名面（实例自注册来源）；留空则只用手工登记
+      zconfig:
+        server-addr: ${ZEXT_CONSOLE_ZCONFIG_ADDR:http://192.168.31.136:31808}
+    admin:
+      enabled: true

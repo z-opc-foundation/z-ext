@@ -1,11 +1,18 @@
 import {useEffect, useState} from 'react'
-import {Button, Form, Input, message, Modal, Select, Space} from 'antd'
-import {PlusOutlined} from '@ant-design/icons';
+import {Button, Form, Input, message, Modal, Select, Space, Tag} from 'antd'
+import {PlusOutlined, SwapOutlined} from '@ant-design/icons';
 import {ErrorState, ListTable} from '@yuku123/z-frontend-common/ui'
 import request from '../../services/request'
+import {extPath, InstanceSelect, unwrapList} from '../../extension/InstanceSelect'
 import ExtensionPointTag from './ExtensionPointTag'
 
 const {Option} = Select
+
+const typeColors = {
+    SYNC: 'blue',
+    ASYNC: 'purple',
+    CHAIN: 'geekblue',
+}
 
 const ExtensionList = () => {
     const [dataSource, setDataSource] = useState([])
@@ -14,6 +21,8 @@ const ExtensionList = () => {
     const [editingRecord, setEditingRecord] = useState(null)
     const [error, setError] = useState(null)
     const [form] = Form.useForm()
+    const [switchTarget, setSwitchTarget] = useState(null)
+    const [switchImpl, setSwitchImpl] = useState(undefined)
 
     const columns = [
         {
@@ -27,31 +36,32 @@ const ExtensionList = () => {
             dataIndex: 'interfaceClass',
             key: 'interfaceClass',
             width: 250,
+            ellipsis: true,
         },
         {
             title: '类型',
             dataIndex: 'type',
             key: 'type',
             width: 100,
-            render: (type) => {
-                return <ExtensionPointTag type={type} name={record.pointName || record.implName}
-                                          bizType={record.bizType}/>
-            },
+            render: (type) => <Tag color={typeColors[type] || 'default'}>{type}</Tag>,
         },
         {
             title: '描述',
             dataIndex: 'description',
             key: 'description',
+            ellipsis: true,
         },
         {
-            title: '版本',
-            dataIndex: 'version',
-            key: 'version',
-            width: 100,
+            title: '当前激活',
+            dataIndex: 'activeImpl',
+            key: 'activeImpl',
+            width: 160,
+            render: (activeImpl) => activeImpl
+                ? <ExtensionPointTag type="IMPL" name={activeImpl}/>
+                : <Tag>默认路由</Tag>,
         },
         {
             title: '实现数量',
-            dataIndex: 'implCount',
             key: 'implCount',
             width: 100,
             render: (_, record) => record.implementations?.length || 0,
@@ -63,7 +73,7 @@ const ExtensionList = () => {
             render: (_, record) => (
                 <Space>
                     <Button
-                        type="link" size="small"
+                        type="link" size="small" icon={<SwapOutlined/>}
                         onClick={() => handleSwitch(record)}
                     >
                         切换
@@ -82,8 +92,8 @@ const ExtensionList = () => {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const res = await request.get('/api/ext/points')
-            setDataSource(res.data || [])
+            const res = await request.get(extPath('/ext/points'))
+            setDataSource(unwrapList(res))
             setError(null)
         } catch (e) {
             // 保留原始 error 对象：ErrorState 会优先取后端 response.data.message，
@@ -110,33 +120,28 @@ const ExtensionList = () => {
         setModalVisible(true)
     }
 
+    // 切换激活实现：POST activate（选"恢复默认路由"则 DELETE 取消激活）。
+    // 切换落在目标实例自己的 ActiveImplStore 上 —— 这就是介入动作本身。
+    // 弹窗用受控 Modal（confirm 的 content 不响应 state），见 render 尾部。
     const handleSwitch = (record) => {
-        Modal.confirm({
-            title: '切换实现',
-            content: `请选择要切换到的实现`,
-            okText: '确认',
-            cancelText: '取消',
-            onOk: async () => {
-                message.success('切换成功')
-                fetchData()
-            },
-        })
+        setSwitchImpl(record.activeImpl || undefined)
+        setSwitchTarget(record)
     }
 
     const handleSubmit = async () => {
         try {
             const values = await form.validateFields()
             if (editingRecord) {
-                await request.put(`/api/ext/points/${editingRecord.id}`, values)
+                await request.put(extPath(`/ext/points/${editingRecord.id}`), values)
                 message.success('更新成功')
             } else {
-                await request.post('/api/ext/points', values)
+                await request.post(extPath('/ext/points'), values)
                 message.success('创建成功')
             }
             setModalVisible(false)
             fetchData()
         } catch (error) {
-            message.error('操作失败')
+            message.error(error?.message || '操作失败')
         }
     }
 
@@ -146,7 +151,7 @@ const ExtensionList = () => {
             content: `确定要删除扩展点 ${record.point} 吗？`,
             onOk: async () => {
                 try {
-                    await request.delete(`/api/ext/points/${record.id}`)
+                    await request.delete(extPath(`/ext/points/${record.id}`))
                     message.success('删除成功')
                     fetchData()
                 } catch (error) {
@@ -158,6 +163,10 @@ const ExtensionList = () => {
 
     return (
         <div>
+            <div style={{marginBottom: 16}}>
+                <InstanceSelect onChange={() => fetchData()}/>
+            </div>
+
             {error && (
                 <div style={{marginBottom: 16}}>
                     <ErrorState error={error} title="获取扩展点列表失败" onRetry={() => fetchData()}/>
@@ -199,7 +208,7 @@ const ExtensionList = () => {
                         label="扩展点标识"
                         rules={[{required: true, message: '请输入扩展点标识'}]}
                     >
-                        <Input placeholder="例如: order.create"/>
+                        <Input placeholder="例如: order.create" disabled={!!editingRecord}/>
                     </Form.Item>
 
                     <Form.Item
@@ -236,6 +245,49 @@ const ExtensionList = () => {
                         <Input placeholder="1.0.0"/>
                     </Form.Item>
                 </Form>
+            </Modal>
+
+            {/* 切换实现弹窗：受控组件而非 Modal.confirm —— confirm 的 content 不会响应 state */}
+            <Modal
+                open={!!switchTarget}
+                title={`切换激活实现：${switchTarget?.point || ''}`}
+                okText="确认切换"
+                cancelText="取消"
+                onCancel={() => setSwitchTarget(null)}
+                onOk={async () => {
+                    try {
+                        if (switchImpl) {
+                            await request.post(
+                                extPath(`/ext/points/${encodeURIComponent(switchTarget.point)}/activate`),
+                                {implName: switchImpl})
+                            message.success(`已切换到 ${switchImpl}`)
+                        } else {
+                            await request.delete(
+                                extPath(`/ext/points/${encodeURIComponent(switchTarget.point)}/activate`))
+                            message.success('已取消激活，回退默认路由')
+                        }
+                        setSwitchTarget(null)
+                        fetchData()
+                    } catch (e) {
+                        message.error(e?.message || '切换失败')
+                    }
+                }}
+            >
+                <Select
+                    style={{width: '100%'}}
+                    placeholder="选择要激活的实现（不选 = 恢复默认路由）"
+                    allowClear
+                    value={switchImpl}
+                    onChange={setSwitchImpl}
+                >
+                    {(switchTarget?.implementations || [])
+                        .filter((i) => i.enabled)
+                        .map((i) => (
+                            <Option key={i.name} value={i.name}>
+                                {i.name}（{i.type}）{i.active ? ' · 当前激活' : ''}
+                            </Option>
+                        ))}
+                </Select>
             </Modal>
         </div>
     )

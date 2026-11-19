@@ -16,6 +16,8 @@ const request = createRequest({
     baseURL: '/api',
     tokenKey: 'zext_token',
     userInfoKey: 'zext_user',
+    // 平台会话 401（不带 errorCode）时跳回本应用登录页（路由在 /z-ext/login）
+    unauthorizedRedirect: '/z-ext/login',
 })
 
 export default request

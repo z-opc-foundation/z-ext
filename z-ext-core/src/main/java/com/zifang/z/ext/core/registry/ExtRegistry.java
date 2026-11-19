@@ -1,6 +1,8 @@
 package com.zifang.z.ext.core.registry;
 
 import com.zifang.z.ext.annotation.ExtImplType;
+import com.zifang.z.ext.core.store.ActiveImplStore;
+import com.zifang.z.ext.core.store.LocalActiveImplStore;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,9 +30,13 @@ public class ExtRegistry {
     private static final Map<String, List<ExtImplDefinition>> EXT_IMPL_REGISTRY = new ConcurrentHashMap<>();
 
     /**
-     * 当前激活的实现 key: point标识
+     * 当前激活的实现。
+     * <p>
+     * 抽成 {@link ActiveImplStore} 是为了让控制面能以多种形态接入（嵌入式 /
+     * Agent 转发 / 配置中心外置）：默认是 JVM 内内存实现，行为与早期静态表一致；
+     * 换成外置实现后，激活状态即可跨进程对齐。
      */
-    private static final Map<String, String> ACTIVE_IMPL = new ConcurrentHashMap<>();
+    private static volatile ActiveImplStore activeImplStore = new LocalActiveImplStore();
 
     /**
      * 监听器列表
@@ -146,10 +152,56 @@ public class ExtRegistry {
     // ==================== 激活实现管理 ====================
 
     /**
+     * 注销一个扩展实现。
+     * <p>
+     * 注册中心原本只有进没有出，控制面要能下线一个实现（如回滚某次介入）就必须能注销：
+     * 同名实现从实现表与扩展点的实现列表里同时移除；若被移除的正是当前激活实现，同步取消激活，
+     * 下一次路由回落到平台默认实现，不会指向一个已不存在的名字。
+     *
+     * @return 实现不存在时返回 {@code false}
+     */
+    public static boolean unregisterImpl(String point, String implName) {
+        if (point == null || implName == null) {
+            return false;
+        }
+        List<ExtImplDefinition> list = EXT_IMPL_REGISTRY.get(point);
+        if (list == null) {
+            return false;
+        }
+        boolean removed = list.removeIf(i -> implName.equals(i.getName()));
+        if (!removed) {
+            return false;
+        }
+        ExtPointDefinition pointDef = EXT_POINT_REGISTRY.get(point);
+        if (pointDef != null) {
+            pointDef.getImplementations().removeIf(i -> implName.equals(i.getName()));
+        }
+        if (implName.equals(activeImplStore.getActiveImpl(point))) {
+            activeImplStore.removeActiveImpl(point);
+        }
+        return true;
+    }
+
+    /**
+     * 注销一个扩展点，连同它名下的全部实现与激活映射。
+     *
+     * @return 扩展点不存在时返回 {@code false}
+     */
+    public static boolean unregisterPoint(String point) {
+        if (point == null || EXT_POINT_REGISTRY.remove(point) == null) {
+            return false;
+        }
+        EXT_IMPL_REGISTRY.remove(point);
+        activeImplStore.removeActiveImpl(point);
+        return true;
+    }
+
+    /**
      * 设置当前激活的实现
      */
     public static void setActiveImpl(String point, String implName) {
-        String oldImpl = ACTIVE_IMPL.put(point, implName);
+        String oldImpl = activeImplStore.getActiveImpl(point);
+        activeImplStore.setActiveImpl(point, implName);
         notifyListeners(listener -> listener.onActiveImplChanged(point, oldImpl, implName));
     }
 
@@ -157,14 +209,34 @@ public class ExtRegistry {
      * 获取当前激活的实现名称
      */
     public static String getActiveImpl(String point) {
-        return ACTIVE_IMPL.get(point);
+        return activeImplStore.getActiveImpl(point);
+    }
+
+    /**
+     * 替换激活状态的存储实现。
+     * <p>
+     * 换 store 之后已有的激活映射不会自动搬运——共享型 store 自己负责加载本地快照，
+     * 内存型 store 则由调用方决定是否迁移。
+     */
+    public static void setActiveImplStore(ActiveImplStore store) {
+        if (store == null) {
+            throw new IllegalArgumentException("ActiveImplStore 不能为空");
+        }
+        activeImplStore = store;
+    }
+
+    /**
+     * 当前生效的激活状态存储。
+     */
+    public static ActiveImplStore getActiveImplStore() {
+        return activeImplStore;
     }
 
     /**
      * 获取当前激活的实现
      */
     public static ExtImplDefinition getActiveImplementation(String point) {
-        String implName = ACTIVE_IMPL.get(point);
+        String implName = activeImplStore.getActiveImpl(point);
         if (implName == null) {
             return null;
         }
@@ -246,7 +318,7 @@ public class ExtRegistry {
     public static void clear() {
         EXT_POINT_REGISTRY.clear();
         EXT_IMPL_REGISTRY.clear();
-        ACTIVE_IMPL.clear();
+        activeImplStore.clear();
     }
 
     /**

@@ -15,19 +15,10 @@ function NotFound() {
     )
 }
 
-// mock 账号不写死在仓里（001 凭证规范）：构建期注入 VITE_MOCK_USER / VITE_MOCK_PASSWORD；
-// 未注入 ⇒ 不传 mockAuth，登录页走「未配置 mock 账号」提示（SSO 接入后换真实 loginApi）。
-const MOCK_AUTH = import.meta.env.VITE_MOCK_USER && import.meta.env.VITE_MOCK_PASSWORD
-    ? {
-        username: import.meta.env.VITE_MOCK_USER,
-        password: import.meta.env.VITE_MOCK_PASSWORD,
-        user: { name: import.meta.env.VITE_MOCK_USER, role: '管理员' },
-    }
-    : null
-
-// lead 008 §16：CTC/SSO 接入前的 mock 登录（账号由构建期 VITE_MOCK_USER / VITE_MOCK_PASSWORD 注入，经 prop 传给组件）
+// 登录走 z-ext-admin 控制台真实会话（POST /api/auth/login），
+// 凭据由部署侧环境变量注入 —— 页面不再有本地 mock 口令（001 凭证规范）。
 function LoginRoute() {
-    return <LoginPage mockAuth={MOCK_AUTH} />
+    return <LoginPage />
 }
 
 function ProtectedShell() {
@@ -35,11 +26,11 @@ function ProtectedShell() {
     const [ready, setReady] = useState(false)
 
     useEffect(() => {
-        if (!localStorage.getItem('token')) {
+        if (!localStorage.getItem('zext_token')) {
             window.location.replace('/z-ext/login')
             return
         }
-        const raw = localStorage.getItem('userInfo')
+        const raw = localStorage.getItem('zext_user')
         if (raw) { try { setUser(JSON.parse(raw)) } catch { setUser({ name: raw }) } }
         setReady(true)
     }, [])
@@ -50,7 +41,7 @@ function ProtectedShell() {
         <AppLayout
             menuItems={menuItems}
             appTitle="z-ext 扩展管理"
-            appVersion="0.1.0"
+            appVersion="1.1.0"
             appUser={user}
             appIcon={{ icon: <img src="/icon.png" alt="z-ext 扩展管理" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />, color: '#ea580c', label: 'z-ext 扩展管理' }}
         />

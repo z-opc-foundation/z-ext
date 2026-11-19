@@ -3,6 +3,7 @@ import {Button, Form, Input, message, Modal, Select, Space, Switch, Tag} from 'a
 import {ApiOutlined, CloudServerOutlined, LaptopOutlined, PlusOutlined} from '@ant-design/icons';
 import {ErrorState, ListTable} from '@yuku123/z-frontend-common/ui'
 import request from '../../services/request'
+import {extPath, InstanceSelect, unwrapList} from '../../extension/InstanceSelect'
 
 const {Option} = Select
 const {TextArea} = Input
@@ -100,8 +101,8 @@ const ImplementationList = () => {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const res = await request.get('/api/ext/implementations')
-            setDataSource(res.data || [])
+            const res = await request.get(extPath('/ext/implementations'))
+            setDataSource(unwrapList(res))
             setError(null)
         } catch (e) {
             // 保留原始 error 对象：ErrorState 会优先取后端 response.data.message，
@@ -114,8 +115,8 @@ const ImplementationList = () => {
 
     const fetchPointOptions = async () => {
         try {
-            const res = await request.get('/api/ext/points')
-            setPointOptions(res.data || [])
+            const res = await request.get(extPath('/ext/points'))
+            setPointOptions(unwrapList(res))
         } catch (error) {
             console.error('获取扩展点失败', error)
         }
@@ -141,7 +142,7 @@ const ImplementationList = () => {
 
     const handleToggleEnabled = async (record, checked) => {
         try {
-            await request.put(`/api/ext/implementations/${record.id}`, {
+            await request.put(extPath(`/ext/implementations/${encodeURIComponent(record.id)}`), {
                 ...record,
                 enabled: checked,
             })
@@ -156,21 +157,24 @@ const ImplementationList = () => {
         try {
             const values = await form.validateFields()
             if (editingRecord) {
-                await request.put(`/api/ext/implementations/${editingRecord.id}`, values)
+                await request.put(extPath(`/ext/implementations/${encodeURIComponent(editingRecord.id)}`), values)
                 message.success('更新成功')
             } else {
-                await request.post('/api/ext/implementations', values)
+                await request.post(extPath('/ext/implementations'), values)
                 message.success('创建成功')
             }
             setModalVisible(false)
             fetchData()
         } catch (error) {
-            message.error('操作失败')
+            message.error(error?.message || '操作失败')
         }
     }
 
     return (
         <div>
+            <div style={{marginBottom: 16}}>
+                <InstanceSelect onChange={() => { fetchData(); fetchPointOptions() }}/>
+            </div>
             {error && (
                 <div style={{marginBottom: 16}}>
                     <ErrorState error={error} title="获取实现列表失败" onRetry={() => fetchData()}/>
