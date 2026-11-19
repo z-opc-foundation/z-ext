@@ -14,9 +14,9 @@
 |------|-----|
 | **仓库** | `z-ext`（origin `git@github.com:z-opc-foundation/z-ext.git`，分支 `main`） |
 | **Maven 坐标** | `io.github.yuku123:z-ext`（聚合 POM）· `z-ext-core`（框架核心 jar）· `z-ext-spring-boot-starter`（Boot 自动装配 + 嵌入式控制面）· `z-ext-admin`（控制台 standalone 应用，**不发 Central**） |
-| **当前版本** | `1.2.1` 写在根 POM `<version>`，子模块 `<parent>` 逐字重复同一版本号——本仓**没有**用 `<revision>` 占位（尽管继承了带 CI-friendly 约定的 `z-boot-parent`） |
+| **当前版本** | `1.2.4` 写在根 POM `<version>`，子模块 `<parent>` 逐字重复同一版本号——本仓**没有**用 `<revision>` 占位（尽管继承了带 CI-friendly 约定的 `z-boot-parent`） |
 | **父项目** | `io.github.yuku123:z-boot-parent:1.2.6`，`<relativePath/>` 留空（parent 在 repo1，不在磁盘）；第三方地板与兄弟仓权威表均已并入 parent 自身（`z-boot-dependencies` / `z-boot-fleet` 两个文件夹随 2026-10-08 火车制拓扑退役） |
-| **Maven Central** | 已发布：`z-ext:1.0.0` pom 200（2026-09-30）；`z-ext-core` 1.0.0 与 **1.0.1**（2026-10-23，repo1 `maven-metadata` latest=release=`1.0.1`）。本仓的 **1.2.1 尚未发布到 Central**（本地 `~/.m2` 与内网 Nexus 已供给）。404 未发布：`z-ext-web`（被 `central` profile 的 `excludeArtifacts` 点名排除）、`z-ext-frontend`（不在 reactor）、旧 namespace `com.zifang:z-ext` / `com.zifang:z-ext-core` |
+| **Maven Central** | 已发布：`z-ext:1.0.0` pom 200（2026-09-30）；`z-ext-core` 1.0.0 与 **1.0.1**（2026-10-23，repo1 `maven-metadata` latest=release=`1.0.1`）。本仓的 **1.2.4 尚未发布到 Central**（本地 `~/.m2` 与内网 Nexus 已供给）。404 未发布：`z-ext-web`（被 `central` profile 的 `excludeArtifacts` 点名排除）、`z-ext-frontend`（不在 reactor）、旧 namespace `com.zifang:z-ext` / `com.zifang:z-ext-core` |
 | **默认端口** | 库本体（z-ext-core / starter）无 —— `z-ext-core` 连 Boot 都不依赖；唯一启 HTTP 服务的是 `z-ext-admin` 控制台，监听 `8888`（`z-ext-admin/src/main/resources/application.yml` 实测 `server.port=8888`）。前端 dev server 监听 `3003`，把 `/api` 代理到 `http://localhost:8888`（控制台或宿主应用） |
 | **运行口径** | Java 17（**当前生效**：`z-boot-parent:1.2.6` 下发 `maven.compiler.source/target=17` 与 `-parameters`）· Spring Boot 地板 `3.5.16`（BOM 口径，实测 `spring-boot.version`）；`z-ext-core` 只依赖 spring-context/beans/core/expression，**不依赖 Spring Boot**（仅 test scope 引 `spring-boot-starter-test`）。根 POM 注释里残留的 `source/target=8` / `spring-boot-maven-plugin 2.7.12` 是 parent 升级前（1.0.19 时代）的历史口径，已不生效 |
 | **许可证** | MIT（根 [`LICENSE`](LICENSE) 为 MIT 全文，根 POM `<licenses>` 声明 MIT License） |
@@ -157,7 +157,7 @@ curl -X POST http://<host>:<port>/api/ext/implementations/mock \
 
 ```
 z-ext/
-├── pom.xml                 聚合 + 发布 POM：parent z-boot-parent:1.2.6、version 1.2.1、
+├── pom.xml                 聚合 + 发布 POM：parent z-boot-parent:1.2.6、version 1.2.4、
 │                           <modules> = z-ext-core + z-ext-spring-boot-starter + z-ext-admin + z-ext-web（_frontend 已注释）、central profile
 ├── LICENSE                 MIT 全文
 ├── README.md               本文档
@@ -212,7 +212,7 @@ mvn spring-boot:run -pl z-ext-admin   # 起控制台（8888），先 export ZEXT
 
 ### 作为依赖引入
 
-Central 上最新已发布版本是 `z-ext-core:1.0.1`（本仓 1.2.1 未发 Central，发布前用本地 `mvn install`）：
+Central 上最新已发布版本是 `z-ext-core:1.0.1`（本仓 1.2.4 未发 Central，发布前用本地 `mvn install`）：
 
 ```xml
 <!-- 纯库用法（JVM 内扩展点路由） -->
@@ -226,7 +226,7 @@ Central 上最新已发布版本是 `z-ext-core:1.0.1`（本仓 1.2.1 未发 Cen
 <dependency>
     <groupId>io.github.yuku123</groupId>
     <artifactId>z-ext-spring-boot-starter</artifactId>
-    <version>1.2.1</version>
+    <version>1.2.4</version>
 </dependency>
 ```
 

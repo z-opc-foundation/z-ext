@@ -110,6 +110,14 @@ public class ZExtProperties {
          */
         private int timeoutMs = 3000;
 
+        /**
+         * 登记令牌（与控制台侧 z.ext.console.reg-token 对暗号；控制台未配置或对不上即拒绝登记）。
+         * <p>
+         * 只走环境变量注入（ZEXT_CONSOLE_REG_TOKEN），不落仓 ——
+         * 登记端点若开放无凭据写入，攻击者可借控制台的代理透传拿到操作员令牌。
+         */
+        private String regToken;
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -148,6 +156,14 @@ public class ZExtProperties {
 
         public void setTimeoutMs(int timeoutMs) {
             this.timeoutMs = timeoutMs;
+        }
+
+        public String getRegToken() {
+            return regToken;
+        }
+
+        public void setRegToken(String regToken) {
+            this.regToken = regToken;
         }
     }
 

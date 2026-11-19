@@ -26,7 +26,7 @@ public class ExtConsoleAutoConfiguration {
             instanceName = environment.getProperty("spring.application.name");
         }
         return new ExtConsoleRegistrar(console.getUrl(), instanceName,
-                console.getBaseUrl(), console.getTimeoutMs());
+                console.getBaseUrl(), console.getTimeoutMs(), console.getRegToken());
     }
 
     /**

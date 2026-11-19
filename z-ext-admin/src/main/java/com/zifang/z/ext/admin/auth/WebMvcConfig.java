@@ -12,14 +12,16 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final TokenStore tokenStore;
+    private final AdminAuthProperties auth;
 
-    public WebMvcConfig(TokenStore tokenStore) {
+    public WebMvcConfig(TokenStore tokenStore, AdminAuthProperties auth) {
         this.tokenStore = tokenStore;
+        this.auth = auth;
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new TokenAuthInterceptor(tokenStore))
+        registry.addInterceptor(new TokenAuthInterceptor(tokenStore, auth.getRegToken()))
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/api/auth/login",

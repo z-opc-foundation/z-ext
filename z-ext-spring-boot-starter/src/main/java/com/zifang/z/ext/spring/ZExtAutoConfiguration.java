@@ -9,6 +9,8 @@ import com.zifang.z.ext.core.router.SpelConditionEvaluator;
 import com.zifang.z.ext.core.store.ActiveImplStore;
 import com.zifang.z.ext.core.store.LocalActiveImplStore;
 import com.zifang.z.ext.spring.admin.ExtAdminController;
+import com.zifang.z.ext.spring.admin.ExtAdapterController;
+import com.zifang.z.ext.spring.admin.ExtMockController;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -16,6 +18,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -119,6 +122,16 @@ public class ZExtAutoConfiguration {
         @Bean
         public ExtAdminController extAdminController(ExtAdminProvider provider) {
             return new ExtAdminController(provider);
+        }
+
+        @Bean
+        public ExtMockController extMockController() {
+            return new ExtMockController();
+        }
+
+        @Bean
+        public ExtAdapterController extAdapterController(ApplicationContext applicationContext) {
+            return new ExtAdapterController(applicationContext);
         }
     }
 }

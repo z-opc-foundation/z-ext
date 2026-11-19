@@ -35,6 +35,7 @@ class ZExtAdminApplicationTest {
     static void consoleCredentials(DynamicPropertyRegistry registry) {
         registry.add("z.ext.console.username", () -> "admin");
         registry.add("z.ext.console.password", () -> "admin123");
+        registry.add("z.ext.console.reg-token", () -> "reg-secret");
     }
 
     @LocalServerPort
@@ -51,6 +52,25 @@ class ZExtAdminApplicationTest {
                 Map.of("username", "admin", "password", "admin123"), Map.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode(), "登录应成功：" + resp.getBody());
         token = (String) resp.getBody().get("token");
+    }
+
+    @Test
+    @DisplayName("实例自登记：带对款 X-Reg-Token 放行，错 token / 无 token 拒绝")
+    void instanceRegistrationAuth() {
+        HttpHeaders good = new HttpHeaders();
+        good.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        good.set("X-Reg-Token", "reg-secret");
+        ResponseEntity<String> ok = rest.exchange("/api/ext/instances", HttpMethod.POST,
+                new HttpEntity<>("{\"name\":\"reg-auth-probe\",\"baseUrl\":\"http://127.0.0.1:1\"}", good), String.class);
+        assertEquals(HttpStatus.OK, ok.getStatusCode(), "对款登记令牌应放行：" + ok.getBody());
+
+        HttpHeaders bad = new HttpHeaders();
+        bad.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        bad.set("X-Reg-Token", "wrong");
+        ResponseEntity<String> denied = rest.exchange("/api/ext/instances", HttpMethod.POST,
+                new HttpEntity<>("{\"name\":\"x\",\"baseUrl\":\"http://127.0.0.1:1\"}", bad), String.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, denied.getStatusCode(), "错 token 应拒绝");
+        exchange(HttpMethod.DELETE, "/api/ext/instances/reg-auth-probe", null);
     }
 
     @AfterEach

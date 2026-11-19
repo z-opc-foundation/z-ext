@@ -30,6 +30,8 @@ class ExtConsoleRegistrarTest {
 
     private final AtomicReference<String> lastMethod = new AtomicReference<>();
 
+    private final AtomicReference<String> lastRegToken = new AtomicReference<>();
+
     private final List<String> deletedPaths = new ArrayList<>();
 
     @BeforeEach
@@ -48,6 +50,7 @@ class ExtConsoleRegistrarTest {
 
     private void handle(HttpExchange exchange) throws java.io.IOException {
         lastMethod.set(exchange.getRequestMethod());
+        lastRegToken.set(exchange.getRequestHeaders().getFirst("X-Reg-Token"));
         lastPath.set(exchange.getRequestURI().getPath());
         if ("DELETE".equals(exchange.getRequestMethod())) {
             deletedPaths.add(exchange.getRequestURI().getPath());
@@ -74,13 +77,24 @@ class ExtConsoleRegistrarTest {
     @Test
     void registersInstanceOnStartup() {
         ExtConsoleRegistrar registrar = new ExtConsoleRegistrar(
-                consoleUrl(), "demo-svc", "http://10.0.0.9:8080", 3000);
+                consoleUrl(), "demo-svc", "http://10.0.0.9:8080", 3000, "reg-secret");
 
         registrar.register(8080);
 
         assertThat(lastMethod.get()).isEqualTo("POST");
         assertThat(lastPath.get()).isEqualTo("/api/ext/instances");
         assertThat(lastBody.get()).contains("demo-svc").contains("http://10.0.0.9:8080");
+        assertThat(lastRegToken.get()).isEqualTo("reg-secret");
+    }
+
+    @Test
+    void registrationWithoutTokenSendsNoHeader() {
+        ExtConsoleRegistrar registrar = new ExtConsoleRegistrar(
+                consoleUrl(), "demo-svc", "http://10.0.0.9:8080", 3000);
+
+        registrar.register(8080);
+
+        assertThat(lastRegToken.get()).isNull();
     }
 
     @Test

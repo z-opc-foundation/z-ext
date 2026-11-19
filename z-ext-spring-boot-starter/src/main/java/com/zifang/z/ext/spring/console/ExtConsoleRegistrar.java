@@ -45,14 +45,23 @@ public class ExtConsoleRegistrar implements ApplicationListener<WebServerInitial
     /** 超时（毫秒）。 */
     private final int timeoutMs;
 
+    /** 登记令牌（空则不带；控制台未配置同款令牌时登记会被拒）。 */
+    private final String regToken;
+
     /** 登记上去的实例名（注销时用）。 */
     private volatile String registeredName;
 
     public ExtConsoleRegistrar(String consoleUrl, String instanceName, String baseUrlOverride, int timeoutMs) {
+        this(consoleUrl, instanceName, baseUrlOverride, timeoutMs, null);
+    }
+
+    public ExtConsoleRegistrar(String consoleUrl, String instanceName, String baseUrlOverride,
+                               int timeoutMs, String regToken) {
         this.consoleUrl = trimTrailingSlash(consoleUrl);
         this.instanceName = instanceName;
         this.baseUrlOverride = baseUrlOverride;
         this.timeoutMs = timeoutMs;
+        this.regToken = regToken;
     }
 
     @Override
@@ -116,6 +125,9 @@ public class ExtConsoleRegistrar implements ApplicationListener<WebServerInitial
             connection.setConnectTimeout(timeoutMs);
             connection.setReadTimeout(timeoutMs);
             connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
+            if (regToken != null && !regToken.isBlank()) {
+                connection.setRequestProperty("X-Reg-Token", regToken.trim());
+            }
             if (body != null) {
                 connection.setDoOutput(true);
                 try (OutputStream out = connection.getOutputStream()) {

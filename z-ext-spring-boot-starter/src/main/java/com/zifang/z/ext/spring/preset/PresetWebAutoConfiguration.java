@@ -19,7 +19,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * 两套命名空间里都能跑，落点实现本身也不引用任何一方（见 {@link PresetGateInterceptor}）。
  */
 @AutoConfiguration(after = PresetGateAutoConfiguration.class)
-@ConditionalOnClass(name = "org.springframework.web.servlet.handler.WebRequestInterceptor")
+@ConditionalOnClass(name = "org.springframework.web.servlet.config.annotation.WebMvcConfigurer")
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnProperty(prefix = "z.ext.preset.http", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class PresetWebAutoConfiguration implements WebMvcConfigurer {
@@ -39,6 +39,9 @@ public class PresetWebAutoConfiguration implements WebMvcConfigurer {
     /** 闸门异常是否放行。 */
     private final boolean failOpen;
 
+    /** 内嵌控制面根路径。 */
+    private final String adminBasePath;
+
     public PresetWebAutoConfiguration(PresetGateExtPoint gate, PresetEventExtPoint events,
                                       ZExtProperties properties, Environment environment) {
         this.gate = gate;
@@ -47,15 +50,19 @@ public class PresetWebAutoConfiguration implements WebMvcConfigurer {
         ZExtProperties.Preset.Http http = properties.getPreset().getHttp();
         this.denyStatus = http.getDenyStatus();
         this.failOpen = http.isFailOpen();
+        this.adminBasePath = properties.getAdminBasePath();
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         // 用运行时代理包成 HandlerInterceptor：不按 javax/jakarta 任何一种命名空间编译，
         // 两类宿主都能挂上这个闸门。
+        // 控制面路径必须豁免：闸门一旦被切成 DENY，唯一能远程回切的通道就是控制面本身，
+        // 拦了它 = 运维把自己锁在门外（1.2.4 端到端演练实测踩中）。
         registry.addInterceptor(PresetGateInterceptor.asHandlerInterceptor(
                         new PresetGateInterceptor(gate, events, appName, denyStatus, failOpen)))
-                .addPathPatterns("/**");
+                .addPathPatterns("/**")
+                .excludePathPatterns(adminBasePath + "/**");
     }
 
     private static String resolveAppName(Environment environment, ZExtProperties properties) {

@@ -13,6 +13,22 @@ public class AdminAuthProperties {
     private String username;
     private String password;
 
+    /**
+     * 实例自登记令牌（环境变量 ZEXT_CONSOLE_REG_TOKEN）。
+     * <p>
+     * 实例侧持同款令牌才能写登记端点；未配置 ⇒ 登记一律拒绝（fail-closed）——
+     * 否则攻击者可登记一个自己控制的 baseUrl，再借控制台的代理透传拿走操作员令牌。
+     */
+    private String regToken;
+
+    public String getRegToken() {
+        return regToken;
+    }
+
+    public void setRegToken(String regToken) {
+        this.regToken = regToken;
+    }
+
     public String getUsername() {
         return username;
     }
