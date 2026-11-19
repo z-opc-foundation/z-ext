@@ -97,6 +97,35 @@ public class ExtInstanceController {
         return forward(name, HttpMethod.POST, "/api/ext/implementations", body, auth);
     }
 
+    /**
+     * 给目标实例注入 mock 实现（「零代码接管」的操作口）。
+     */
+    @PostMapping("/{name}/implementations/mock")
+    public Map<String, Object> injectMock(@PathVariable String name,
+                                          @RequestBody Map<String, Object> body,
+                                          @RequestHeader(value = "Authorization", required = false) String auth) {
+        return forward(name, HttpMethod.POST, "/api/ext/implementations/mock", body, auth);
+    }
+
+    /**
+     * 把目标实例里的既有 Bean 现场适配成扩展点实现。
+     */
+    @PostMapping("/{name}/adapters")
+    public Map<String, Object> adapt(@PathVariable String name,
+                                      @RequestBody Map<String, Object> body,
+                                      @RequestHeader(value = "Authorization", required = false) String auth) {
+        return forward(name, HttpMethod.POST, "/api/ext/adapters", body, auth);
+    }
+
+    /**
+     * 列出目标实例里可适配的 Bean。
+     */
+    @GetMapping("/{name}/adapters")
+    public Map<String, Object> adapters(@PathVariable String name,
+                                        @RequestHeader(value = "Authorization", required = false) String auth) {
+        return forward(name, HttpMethod.GET, "/api/ext/adapters", null, auth);
+    }
+
     @PutMapping("/{name}/implementations/{id}")
     public Map<String, Object> updateImpl(@PathVariable String name, @PathVariable String id,
                                           @RequestBody Map<String, Object> body,

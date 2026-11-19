@@ -14,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -214,7 +215,21 @@ public class ExtInvocationHandler implements InvocationHandler {
         }
 
         method.setAccessible(true);
-        return method.invoke(instance, args);
+        try {
+            return method.invoke(instance, args);
+        } catch (InvocationTargetException e) {
+            // 反射会把实现抛出的异常包成 InvocationTargetException 再抛给调用方，
+            // 业务侧看到的就变成了「反射异常」而不是真实原因（控制面接管的 mock 抛错时尤其别扭）。
+            // 这里拆包还原：调用方拿到的就是实现自己抛的那个异常。
+            Throwable cause = e.getCause();
+            if (cause instanceof Exception) {
+                throw (Exception) cause;
+            }
+            if (cause instanceof Error) {
+                throw (Error) cause;
+            }
+            throw e;
+        }
     }
 
     /**

@@ -1,1 +1,5 @@
 com.zifang.z.ext.spring.ZExtAutoConfiguration
+com.zifang.z.ext.spring.preset.PresetGateAutoConfiguration
+com.zifang.z.ext.spring.preset.PresetWebAutoConfiguration
+com.zifang.z.ext.spring.adapter.ExtAdapterAutoConfiguration
+com.zifang.z.ext.spring.aop.ExtHookAutoConfiguration

@@ -4,7 +4,7 @@
 
 它解决的问题是"同一套接口，多种实现，运行期决定用哪个"：平台方只发布接口和一个默认（PLATFORM）实现，业务方可以注册 CUSTOM 实现顶掉它，三方服务可以登记为 EXTERNAL 实现、由框架走 z-rpc 远程调用；切换靠注册表里的"当前激活实现"，不需要重新编译、不需要 if-else 分支。
 
-需要说清楚的是：**核心仍是进程内的扩展点路由框架，不是插件容器**——本仓代码里没有 ClassLoader 隔离、没有 ServiceLoader/SPI 插件发现、没有 jar 上传/安装/卸载。1.1.0 起它长出了介入能力的骨架：注册表的可变状态收口到 `ActiveImplStore` SPI，starter 把控制面嵌进业务实例，admin 把多个实例的操作聚合到一个控制台（细节见「接口一览」与「已知边界」）。`_doc/` 里的产品方案写了更多（沙箱、插件市场），那是设计意图，不是现状。
+需要说清楚的是：**核心仍是进程内的扩展点路由框架，不是插件容器**——本仓代码里没有 ClassLoader 隔离、没有 ServiceLoader/SPI 插件发现、没有 jar 上传/安装/卸载。1.1.0 起它长出了介入能力的骨架：注册表的可变状态收口到 `ActiveImplStore` SPI，starter 把控制面嵌进业务实例，admin 把多个实例的操作聚合到一个控制台（细节见「接口一览」与「已知边界」）。1.2.0 起补上**五档侵入方式**（零侵入预置 / 注解 / 适配既有 Bean / AOP 织入 / 零代码 mock 实现），业务仓按侵入程度自选，控制面始终用同一套接口操作。`_doc/` 里的产品方案写了更多（沙箱、插件市场），那是设计意图，不是现状。
 
 ---
 
@@ -14,9 +14,9 @@
 |------|-----|
 | **仓库** | `z-ext`（origin `git@github.com:z-opc-foundation/z-ext.git`，分支 `main`） |
 | **Maven 坐标** | `io.github.yuku123:z-ext`（聚合 POM）· `z-ext-core`（框架核心 jar）· `z-ext-spring-boot-starter`（Boot 自动装配 + 嵌入式控制面）· `z-ext-admin`（控制台 standalone 应用，**不发 Central**） |
-| **当前版本** | `1.1.0` 写在根 POM `<version>`，子模块 `<parent>` 逐字重复同一版本号——本仓**没有**用 `<revision>` 占位（尽管继承了带 CI-friendly 约定的 `z-boot-parent`） |
+| **当前版本** | `1.2.0` 写在根 POM `<version>`，子模块 `<parent>` 逐字重复同一版本号——本仓**没有**用 `<revision>` 占位（尽管继承了带 CI-friendly 约定的 `z-boot-parent`） |
 | **父项目** | `io.github.yuku123:z-boot-parent:1.2.6`，`<relativePath/>` 留空（parent 在 repo1，不在磁盘）；第三方地板与兄弟仓权威表均已并入 parent 自身（`z-boot-dependencies` / `z-boot-fleet` 两个文件夹随 2026-10-08 火车制拓扑退役） |
-| **Maven Central** | 已发布：`z-ext:1.0.0` pom 200（2026-09-30）；`z-ext-core` 1.0.0 与 **1.0.1**（2026-10-23，repo1 `maven-metadata` latest=release=`1.0.1`）。本仓的 1.1.0 **尚未发布**。404 未发布：`z-ext-web`（被 `central` profile 的 `excludeArtifacts` 点名排除）、`z-ext-frontend`（不在 reactor）、旧 namespace `com.zifang:z-ext` / `com.zifang:z-ext-core` |
+| **Maven Central** | 已发布：`z-ext:1.0.0` pom 200（2026-09-30）；`z-ext-core` 1.0.0 与 **1.0.1**（2026-10-23，repo1 `maven-metadata` latest=release=`1.0.1`）。本仓的 **1.2.0 尚未发布到 Central**（本地 `~/.m2` 与内网 Nexus 已供给）。404 未发布：`z-ext-web`（被 `central` profile 的 `excludeArtifacts` 点名排除）、`z-ext-frontend`（不在 reactor）、旧 namespace `com.zifang:z-ext` / `com.zifang:z-ext-core` |
 | **默认端口** | 库本体（z-ext-core / starter）无 —— `z-ext-core` 连 Boot 都不依赖；唯一启 HTTP 服务的是 `z-ext-admin` 控制台，监听 `8888`（`z-ext-admin/src/main/resources/application.yml` 实测 `server.port=8888`）。前端 dev server 监听 `3003`，把 `/api` 代理到 `http://localhost:8888`（控制台或宿主应用） |
 | **运行口径** | Java 17（**当前生效**：`z-boot-parent:1.2.6` 下发 `maven.compiler.source/target=17` 与 `-parameters`）· Spring Boot 地板 `3.5.16`（BOM 口径，实测 `spring-boot.version`）；`z-ext-core` 只依赖 spring-context/beans/core/expression，**不依赖 Spring Boot**（仅 test scope 引 `spring-boot-starter-test`）。根 POM 注释里残留的 `source/target=8` / `spring-boot-maven-plugin 2.7.12` 是 parent 升级前（1.0.19 时代）的历史口径，已不生效 |
 | **许可证** | MIT（根 [`LICENSE`](LICENSE) 为 MIT 全文，根 POM `<licenses>` 声明 MIT License） |
@@ -26,7 +26,7 @@
 
 ## 🎯 能力清单（逐条对得上类）
 
-核心实现全部在 [`z-ext-core/src/main/java/com/zifang/z/ext/`](z-ext-core/src/main/java/com/zifang/z/ext/)（29 个 main 类）；接入层在 `z-ext-spring-boot-starter`，控制台在 `z-ext-admin`，二者不往 core 里塞一行。
+核心实现全部在 [`z-ext-core/src/main/java/com/zifang/z/ext/`](z-ext-core/src/main/java/com/zifang/z/ext/)（42 个 main 类）；接入层在 `z-ext-spring-boot-starter`，控制台在 `z-ext-admin`，二者不往 core 里塞一行。
 
 | 能力 | 实现类 | 实测行为 |
 |------|--------|----------|
@@ -45,6 +45,10 @@
 | 远程执行 | [`ExtRpcInvoker`](z-ext-core/src/main/java/com/zifang/z/ext/rpc/client/ExtRpcInvoker.java) · [`ExtRpcInvokerFactory`](z-ext-core/src/main/java/com/zifang/z/ext/rpc/client/ExtRpcInvokerFactory.java) · [`ZRpcExtInvoker`](z-ext-core/src/main/java/com/zifang/z/ext/rpc/client/ZRpcExtInvoker.java) | EXTERNAL 走 RPC：工厂按 `host:port` 缓存 invoker（另有 `removeInvoker` / `closeAll` / `getInvokerCount`）。`ZRpcExtInvoker` 用 `com.zifang.z.rpc.remoting.RpcClient` 发 `RpcRequest`（`requestId` 由 `z-util-core` 的 `RandomUtil.uuid()` 生成，参数槽为 `setArguments`），响应里 `getException()` 非空就把异常抛回调用方，否则取 `getResult()` |
 | 脚本实现桥 | [`ScriptBackedExtImpl`](z-ext-core/src/main/java/com/zifang/z/ext/core/script/ScriptBackedExtImpl.java) | 把一段脚本包装成 CUSTOM 实现：登记名为 `"script-" + scriptCode.hashCode()`、`order=100` 的 `ExtImplDefinition`，返回一个把调用委派给 `ScriptExecutor.execute(scriptCode, dslType, methodName, args)` 的代理。执行器由**调用方注入**，本仓不依赖 z-script |
 | Boot 接入 | `z-ext-spring-boot-starter`（`ZExtAutoConfiguration`） | `@EnableExt` 之外的第二条装配路：Boot 自动装配提供 `ActiveImplStore`（可换 Bean）· `ExtRouter` · `ExtAdminProvider` · `ExtProxyBuilder`（路由 + 异步执行器就绪的代理工厂）· `ExtImplInstanceBinder`（`@ExtImpl` Bean 回填）；servlet-web 环境默认开嵌入式控制面 `z.ext.admin.base-path=/api/ext`（可 `z.ext.admin.enabled=false` 关） |
+| 预置埋点（零侵入） | [`PresetPoints`](z-ext-core/src/main/java/com/zifang/z/ext/preset/PresetPoints.java) · [`PresetGateExtPoint`](z-ext-core/src/main/java/com/zifang/z/ext/preset/PresetGateExtPoint.java) · [`PresetAdviceExtPoint`](z-ext-core/src/main/java/com/zifang/z/ext/preset/PresetAdviceExtPoint.java) · [`PresetEventExtPoint`](z-ext-core/src/main/java/com/zifang/z/ext/preset/PresetEventExtPoint.java) · [`PresetRegistrar`](z-ext-core/src/main/java/com/zifang/z/ext/preset/PresetRegistrar.java) | starter 自动注册三个点（闸门/环绕/通知）+ 默认实现，**不要求宿主写 `@EnableExt`**；落点覆盖 HTTP 请求、启动就绪、关闭、请求完成。闸门拒绝 ⇒ `503`；闸门实现抛错 ⇒ 失败放行（默认） |
+| 适配既有实现 | [`ExtAdapter`](z-ext-core/src/main/java/com/zifang/z/ext/adapter/ExtAdapter.java) · [`ExtAdapterRegistrar`](z-ext-core/src/main/java/com/zifang/z/ext/adapter/ExtAdapterRegistrar.java) | 既有 Bean 标 `@ExtAdapter("point")` 即成为该点的一个可选实现（默认实现名取类名首字母小写）；注册前校验扩展点存在、Bean 实现了目标接口 |
+| AOP 织入 | [`ExtHook`](z-ext-core/src/main/java/com/zifang/z/ext/aop/ExtHook.java) · `ExtHookInterceptor` · `ExtHookAutoConfiguration` | 既有方法标 `@ExtHook` ⇒ 调用自动过扩展点，**调用点代码不改**；织入由容器自动代理器完成，宿主已有 `@EnableAspectJAutoProxy` 时同样生效 |
+| 零代码实现 | [`MockSpec`](z-ext-core/src/main/java/com/zifang/z/ext/mock/MockSpec.java) · [`MockExtImplFactory`](z-ext-core/src/main/java/com/zifang/z/ext/mock/MockExtImplFactory.java) | 控制面下发行为描述即造出实现代理：固定返回 / 恒拒绝 / 抛错 / 延迟；返回值按方法签名适配（装箱、基本类型默认值、JSON 反序列化） |
 | 控制台 | `z-ext-admin`（`ZExtAdminApplication`） | standalone Boot 应用：登录（凭据走环境变量）+ 本机控制面 + **实例聚合**——`/api/ext/instances/**` 把操作代理转发到各业务实例的嵌入式控制面（透传 Authorization），多进程介入的操作入口 |
 
 ---
@@ -62,17 +66,90 @@
 
 **隔离**：注册表是静态全局的，同 JVM 内所有 Spring 上下文共享同一份 point/impl 状态，`clear()` 一发全清；不存在按插件划分的 ClassLoader（代码里出现的 `getClassLoader()` 只是 JDK 代理需要接口类加载器）。真正的隔离只有一种：EXTERNAL 实现跑在**另一个进程**里，靠 z-rpc 的 host:port 通信，本进程的异常边界由 `RpcResponse.getException()` 传回。
 
+
+---
+
+## 🪝 五档侵入方式（1.2.0 新增：从零到深，各仓自选）
+
+「预埋点」不等于「每个仓都写一个扩展点接口」。z-ext 1.2.0 把接入拆成五档，
+**侵入程度递增、控制力递增**，业务仓挑一档（常常是「零侵入 + 一处业务点」的组合）：
+
+| 档 | 名称 | 业务侧要写什么 | 能被操控成什么 | 落点代码 |
+|----|------|----------------|----------------|----------|
+| ① | **零侵入预置** | 只加一行依赖 | 任意 HTTP 请求被闸门拒绝（503）、生命周期事件被接管 | `PresetGateAutoConfiguration` + `PresetWebAutoConfiguration` 自动装配 |
+| ② | **注解扩展点** | 新增 `@ExtPoint` 接口 + `@ExtImpl` 实现 + `@EnableExt` + 调用点走代理 | 整个扩展点换实现、换条件、换权重 | `ExtPoint` / `ExtImpl` / `ExtScanner`（既有能力） |
+| ③ | **适配既有 Bean** | 在现成 Bean 上加 `@ExtAdapter("point")` | 在「正常实现 / 降级实现」等既有实现之间一键切换 | `ExtAdapter` + `ExtAdapterRegistrar` + `ExtAdapterBeanPostProcessor` |
+| ④ | **AOP 织入** | 在既有方法上加 `@ExtHook("point")`，**调用点不改** | 结果被改写、调用被中断 | `ExtHook` + `ExtHookInterceptor` + `ExtHookAutoConfiguration` |
+| ⑤ | **零代码实现** | 什么都不写 | 控制面直接下发 mock（固定返回 / 恒拒绝 / 抛错 / 延迟），即刻接管 | `MockExtImplFactory` + 控制面 `POST /api/ext/implementations/mock` |
+
+### ① 零侵入预置（引依赖即生效）
+
+starter 自动注册三个点并挂好落点，**宿主一行代码都不用写**：
+
+| 点标识 | 接口 | 语义 | 默认实现 |
+|--------|------|------|----------|
+| `z.ext.preset.gate` | [`PresetGateExtPoint`](z-ext-core/src/main/java/com/zifang/z/ext/preset/PresetGateExtPoint.java) | 闸门：`allow(event, attrs)` 决定放行与否，`denyMessage` 给拒绝提示 | `PresetGateDefaultExtPoint`（恒放行） |
+| `z.ext.preset.advice` | [`PresetAdviceExtPoint`](z-ext-core/src/main/java/com/zifang/z/ext/preset/PresetAdviceExtPoint.java) | 环绕：`around(event, attrs, action)` 可放行后改写、替换结果或中断 | `PresetAdviceDefaultExtPoint`（原样放行） |
+| `z.ext.preset.event` | [`PresetEventExtPoint`](z-ext-core/src/main/java/com/zifang/z/ext/preset/PresetEventExtPoint.java) | 通知：`publish(event, attrs)` 抛运行期事件（观测/告警/审计） | `PresetEventDefaultExtPoint`（空实现） |
+
+落点：HTTP 请求（事件名 `http.<METHOD>.<路径模板>`，拒绝返回 `503`）、
+启动就绪 `app.ready`、关闭 `app.shutdown`、请求完成 `http.completed`（带耗时）。
+**失败放行**：闸门实现自己抛错时按放行处理（`z.ext.preset.http.fail-open`，默认 true）——
+控制面是运维手段，它坏了不该把业务一起带下去。
+
+配置项：`z.ext.preset.enabled`（默认开）· `z.ext.preset.http.enabled`（默认开）·
+`z.ext.preset.http.deny-status`（默认 503）· `z.ext.preset.http.fail-open`（默认 true）。
+
+### ③ 适配既有 Bean
+
+```java
+@ExtAdapter(point = "z.ext.preset.gate", name = "degraded")
+@Service
+public class DegradedGate implements PresetGateExtPoint { /* 现成的降级逻辑 */ }
+```
+
+标完它就成了该扩展点的一个可选实现，控制面切过去即刻生效；
+也可以运行时用 `ExtAdapterRegistrar.register(point, bean, name)` 现场挂载，
+或走控制面 `POST /api/ext/adapters`（按 Bean 名挂载）。
+
+### ④ AOP 织入（调用点不改）
+
+```java
+@ExtHook(event = "order.compute")
+public OrderResult compute(OrderRequest req) { /* 原样 */ }
+```
+
+调用侧仍是 `service.compute(req)`，但这次调用已经过了扩展点：
+控制面切到别的实现后，结果可被改写或调用被中断。
+织入由容器里的自动代理器完成；宿主若已有 `@EnableAspectJAutoProxy`，那个织入器优先级更高，
+但同样会拾取本件提供的 Advisor，两种情况都生效。
+
+### ⑤ 零代码实现（mock 注入）
+
+```bash
+curl -X POST http://<host>:<port>/api/ext/implementations/mock \
+  -H 'Content-Type: application/json' \
+  -d '{"point":"z.ext.preset.gate","name":"drill","behavior":"DENY","errorMessage":"演练封禁"}'
+```
+
+再 `POST /api/ext/points/z.ext.preset.gate/activate {"implName":"drill"}` ⇒ 服务立刻开始拒绝，
+控制台上一键回滚即恢复。`behavior` 取 `RETURN` / `THROW` / `DENY`，另支持 `delayMs` 模拟慢依赖。
+
+### 五档的关系
+
+五档共用**同一份注册表、同一套控制面接口**：控制台看到的点/实现/激活态，
+不管它是由注解、适配器、AOP 还是 mock 注入产生的，切换方式完全一致。
 ---
 
 ## 🏗️ 项目结构
 
 ```
 z-ext/
-├── pom.xml                 聚合 + 发布 POM：parent z-boot-parent:1.2.6、version 1.1.0、
+├── pom.xml                 聚合 + 发布 POM：parent z-boot-parent:1.2.6、version 1.2.0、
 │                           <modules> = z-ext-core + z-ext-spring-boot-starter + z-ext-admin + z-ext-web（_frontend 已注释）、central profile
 ├── LICENSE                 MIT 全文
 ├── README.md               本文档
-├── z-ext-core/             框架核心：注解 / 注册表 / 路由 / 代理 / RPC / 脚本桥 / 控制面 SPI（29 个 main 类）
+├── z-ext-core/             框架核心：注解 / 注册表 / 路由 / 代理 / RPC / 脚本桥 / 控制面 SPI（42 个 main 类）
 ├── z-ext-spring-boot-starter/  Boot 自动装配：注册表装配 / ExtProxyBuilder / 实例回填 / 嵌入式控制面 /api/ext/**（servlet-web 默认开）
 ├── z-ext-admin/            控制台 standalone 应用：登录 + 实例聚合代理 + 前端内嵌；监听 8888，不发 Central
 │   ├── src/main/java/com/zifang/z/ext/admin/   应用入口 / auth（TokenStore + 拦截器）/ instance（注册表 + RestClient 转发）
@@ -123,7 +200,7 @@ mvn spring-boot:run -pl z-ext-admin   # 起控制台（8888），先 export ZEXT
 
 ### 作为依赖引入
 
-Central 上最新已发布版本是 `z-ext-core:1.0.1`（本仓 1.1.0 未发布，发布前用本地 `mvn install`）：
+Central 上最新已发布版本是 `z-ext-core:1.0.1`（本仓 1.2.0 未发 Central，发布前用本地 `mvn install`）：
 
 ```xml
 <!-- 纯库用法（JVM 内扩展点路由） -->
@@ -133,11 +210,11 @@ Central 上最新已发布版本是 `z-ext-core:1.0.1`（本仓 1.1.0 未发布�
     <version>1.0.1</version>
 </dependency>
 
-<!-- Spring Boot 用法：自动装配注册表 / 代理工厂 / 嵌入式控制面（推荐，1.1.0 起） -->
+<!-- Spring Boot 用法：自动装配注册表 / 代理工厂 / 预置埋点 / 嵌入式控制面（推荐，1.1.0 起） -->
 <dependency>
     <groupId>io.github.yuku123</groupId>
     <artifactId>z-ext-spring-boot-starter</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
@@ -219,6 +296,9 @@ npm run build    # 产物 dist/
 | `ActiveImplStore`（SPI） | `setActiveImpl` · `getActiveImpl` · `removeActiveImpl` · `getAll` · `clear`；默认 `LocalActiveImplStore`，换 Config/Remote 实现即接入层外置 |
 | `ExtAdminProvider`（SPI） | `snapshot` · `activate` · `deactivate` · `setEnabled` · `registerImpl`；默认 `DefaultExtAdminProvider` |
 | `ExtRpcInvokerFactory` | `getInvoker(host, port)` · `removeInvoker` · `closeAll` · `getInvokerCount` |
+| `ExtAdapterRegistrar` | `register(point, bean)` · `register(point, bean, name)` · `defaultNameOf(Class)` |
+| `MockExtImplFactory` | `register(point, interfaceClass, MockSpec)` → 实现名 |
+| `PresetRegistrar` | `ensureRegistered()`（幂等；重复调用不覆盖已有同名实现） |
 | `ScriptBackedExtImpl` | `createProxy(pointName, scriptCode, dslType, interfaceClass)` + `ScriptExecutor` SPI 式回调接口 |
 
 **HTTP API：三层各管一段。** `z-ext-core` / `z-ext-web` 仍然 0 个 `@Controller`；接口面在 starter（嵌入式控制面）与 admin（控制台）。响应统一 `{code, data, message}` 包装（业务错误用业务码，不是 HTTP 错误码）：
@@ -230,6 +310,8 @@ npm run build    # 产物 dist/
 | `/api/ext/points/{point}/activate` | POST / DELETE | starter | 激活切换（`{implName}`）/ 取消激活 —— 介入动作落在这个实例自己的 `ActiveImplStore` |
 | `/api/ext/implementations` | GET / POST | starter | 平铺实现清单 / 登记实现（重名不同类 → 409 业务码） |
 | `/api/ext/implementations/{id}` | PUT / DELETE | starter | 改 enabled/weight/order/condition/rpc* / 注销 |
+| `/api/ext/implementations/mock` | POST | starter | 注入 mock 实现（`{point, name, behavior, result, errorMessage, delayMs}`）——「零代码接管」的操作口 |
+| `/api/ext/adapters` | GET / POST | starter | 列出宿主里带 `@ExtAdapter` 的 Bean / 按 Bean 名现场把既有实现挂上扩展点 |
 | `/api/auth/login` · `/api/auth/logout` | POST | z-ext-admin | 控制台会话（Bearer 令牌，内存态） |
 | `/api/ext/instances` | GET / POST | z-ext-admin | 实例登记表（内存态）：`{name, baseUrl}` |
 | `/api/ext/instances/{name}/...` | GET / POST / PUT / DELETE | z-ext-admin | 把上面的 starter 接口代理转发到目标实例（透传 Authorization），实例不可达 → 502 业务码 |
@@ -247,7 +329,7 @@ mvn -pl z-ext-core test # 只要核心
 
 实测的测试类（按模块）：
 
-- `z-ext-core/src/test/java/com/zifang/z/ext/`：`ExtRegistryTest`、`ExtRouterTest`、`ExtProxyFactoryTest`、`ExtInvocationHandlerTest`、`ExtIntegrationTest`、`ScriptBackedImplNamingTest`、`ReadmeClaimsTest`、`EnableExtIntegrationTest`，1.1.0 新增 `LocalActiveImplStoreTest`、`DefaultExtAdminProviderTest`、`ExtConditionRoutingTest`、`ExtAsyncExecutionTest`、`ExtChainIsolationTest`（CHAIN 失败隔离：单实现失败继续跑后续、异常不上抛）、`ExtExternalRpcE2ETest`（EXTERNAL 实现经 z-rpc netty 真连接打对端并拿回结果/异常）；`test/` 下另备 `OrderService` + PLATFORM/CUSTOM 两个实现与一个 `@ExtPoint` 标注的 `PaymentService` 作夹具，`enableext/` 下另备 `@EnableExt` 两个分支专用的配置类与 `@ExtPoint`/`@ExtImpl` 夹具。
+- `z-ext-core/src/test/java/com/zifang/z/ext/`：`ExtRegistryTest`、`ExtRouterTest`、`ExtProxyFactoryTest`、`ExtInvocationHandlerTest`、`ExtIntegrationTest`、`ScriptBackedImplNamingTest`、`ReadmeClaimsTest`、`EnableExtIntegrationTest`，1.1.0 新增 `LocalActiveImplStoreTest`、`DefaultExtAdminProviderTest`、`ExtConditionRoutingTest`、`ExtAsyncExecutionTest`、`ExtChainIsolationTest`（CHAIN 失败隔离：单实现失败继续跑后续、异常不上抛）、`ExtExternalRpcE2ETest`（EXTERNAL 实现经 z-rpc netty 真连接打对端并拿回结果/异常），1.2.0 新增 `preset/PresetRegistrarTest`（预置点注册幂等）、`mock/MockExtImplFactoryTest`（mock 固定返回/抛错/恒拒绝）、`adapter/ExtAdapterRegistrarTest`（既有 Bean 适配成实现后可直接切换）；starter 侧 1.2.0 新增 `preset/PresetGateAutoConfigurationTest`（引依赖即有可被操控的点）、`preset/PresetGateInterceptorTest`（HTTP 闸门放行/503 拒绝/失败放行）、`aop/ExtHookAutoConfigurationTest`（`@ExtHook` 织入后结果被扩展点改写）；`test/` 下另备 `OrderService` + PLATFORM/CUSTOM 两个实现与一个 `@ExtPoint` 标注的 `PaymentService` 作夹具，`enableext/` 下另备 `@EnableExt` 两个分支专用的配置类与 `@ExtPoint`/`@ExtImpl` 夹具。
 - `z-ext-spring-boot-starter`：`ZExtAutoConfigurationTest`（装配面：默认 Bean、store 装进 ExtRegistry、实例回填、控制面开关）+ `ExtAdminControllerTest`（MockMvc 打嵌入式控制面的全部端点）。
 - `z-ext-admin`：`ZExtAdminApplicationTest`（RANDOM_PORT 端到端：登录 → 令牌 → 本机控制面 → 把自己注册成实例的自环代理）。
 - `z-ext-web` / `_frontend` 无测试。

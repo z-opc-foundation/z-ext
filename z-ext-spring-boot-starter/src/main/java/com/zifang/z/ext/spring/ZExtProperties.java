@@ -28,6 +28,8 @@ public class ZExtProperties {
 
     private final Async async = new Async();
 
+    private final Preset preset = new Preset();
+
     public boolean isAdminEnabled() {
         return adminEnabled;
     }
@@ -54,6 +56,87 @@ public class ZExtProperties {
 
     public Async getAsync() {
         return async;
+    }
+
+    /**
+     * 预置埋点相关配置。
+     */
+    public Preset getPreset() {
+        return preset;
+    }
+
+    /**
+     * 预置埋点。
+     * <p>
+     * 预置埋点是框架自带的「零业务侵入」落点：引依赖即注册三个可被控制面接管的点。
+     */
+    public static class Preset {
+
+        /**
+         * 是否启用预置埋点。
+         */
+        private boolean enabled = true;
+
+        private final Http http = new Http();
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public Http getHttp() {
+            return http;
+        }
+
+        /**
+         * HTTP 闸门落点。
+         */
+        public static class Http {
+
+            /**
+             * 是否把闸门接到 HTTP 请求上。
+             */
+            private boolean enabled = true;
+
+            /**
+             * 拒绝时返回的状态码。
+             */
+            private int denyStatus = 503;
+
+            /**
+             * 闸门实现异常时是否放行。
+             * <p>
+             * 默认放行：控制面是运维手段，它坏了不该把业务一起带下去。
+             */
+            private boolean failOpen = true;
+
+            public boolean isEnabled() {
+                return enabled;
+            }
+
+            public void setEnabled(boolean enabled) {
+                this.enabled = enabled;
+            }
+
+            public int getDenyStatus() {
+                return denyStatus;
+            }
+
+            public void setDenyStatus(int denyStatus) {
+                this.denyStatus = denyStatus;
+            }
+
+            public boolean isFailOpen() {
+                return failOpen;
+            }
+
+            public void setFailOpen(boolean failOpen) {
+                this.failOpen = failOpen;
+            }
+        }
     }
 
     /**
