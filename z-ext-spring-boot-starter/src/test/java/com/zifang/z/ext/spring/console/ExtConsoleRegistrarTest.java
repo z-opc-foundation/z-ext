@@ -10,6 +10,7 @@ import org.springframework.boot.web.server.WebServer;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -115,6 +116,75 @@ class ExtConsoleRegistrarTest {
                 "http://127.0.0.1:1", "demo-svc", "http://10.0.0.9:8080", 500);
 
         registrar.register(8080);
+    }
+
+    @Test
+    void registrationRetriesUntilConsoleBecomesAvailable() throws Exception {
+        // 控制台晚起：首登连接拒绝 ⇒ 退避重试应把实例补登记上
+        int port = freePort();
+        ExtConsoleRegistrar registrar = new ExtConsoleRegistrar(
+                "http://127.0.0.1:" + port, "late-console", "http://10.0.0.9:8080", 500, null,
+                new long[]{200L, 200L, 200L});
+        registrar.register(8080);
+
+        HttpServer late = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
+        AtomicReference<String> path = new AtomicReference<>();
+        AtomicReference<String> body = new AtomicReference<>();
+        late.createContext("/", exchange -> {
+            path.set(exchange.getRequestURI().getPath());
+            try (InputStream in = exchange.getRequestBody()) {
+                body.set(new String(in.readAllBytes(), StandardCharsets.UTF_8));
+            }
+            byte[] response = "{\"code\":200}".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, response.length);
+            exchange.getResponseBody().write(response);
+            exchange.close();
+        });
+        late.start();
+        try {
+            long deadline = System.currentTimeMillis() + 5000;
+            while (System.currentTimeMillis() < deadline && path.get() == null) {
+                Thread.sleep(50);
+            }
+            assertThat(path.get()).isEqualTo("/api/ext/instances");
+            assertThat(body.get()).contains("late-console");
+        } finally {
+            late.stop(0);
+        }
+    }
+
+    @Test
+    void shutdownStopsPendingRetries() throws Exception {
+        // 容器关闭后不该再有登记动作
+        int port = freePort();
+        ExtConsoleRegistrar registrar = new ExtConsoleRegistrar(
+                "http://127.0.0.1:" + port, "closing-svc", "http://10.0.0.9:8080", 500, null,
+                new long[]{200L, 200L, 200L});
+        registrar.register(8080);
+        registrar.unregister();
+
+        HttpServer late = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
+        AtomicReference<String> path = new AtomicReference<>();
+        late.createContext("/", exchange -> {
+            path.set(exchange.getRequestURI().getPath());
+            byte[] response = "{}".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, response.length);
+            exchange.getResponseBody().write(response);
+            exchange.close();
+        });
+        late.start();
+        try {
+            Thread.sleep(1200);
+            assertThat(path.get()).isNull();
+        } finally {
+            late.stop(0);
+        }
+    }
+
+    private static int freePort() throws Exception {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            return socket.getLocalPort();
+        }
     }
 
 }

@@ -14,9 +14,9 @@
 |------|-----|
 | **仓库** | `z-ext`（origin `git@github.com:z-opc-foundation/z-ext.git`，分支 `main`） |
 | **Maven 坐标** | `io.github.yuku123:z-ext`（聚合 POM）· `z-ext-core`（框架核心 jar）· `z-ext-spring-boot-starter`（Boot 自动装配 + 嵌入式控制面）· `z-ext-admin`（控制台 standalone 应用，**不发 Central**） |
-| **当前版本** | `1.2.4` 写在根 POM `<version>`，子模块 `<parent>` 逐字重复同一版本号——本仓**没有**用 `<revision>` 占位（尽管继承了带 CI-friendly 约定的 `z-boot-parent`） |
+| **当前版本** | `1.2.6` 写在根 POM `<version>`，子模块 `<parent>` 逐字重复同一版本号——本仓**没有**用 `<revision>` 占位（尽管继承了带 CI-friendly 约定的 `z-boot-parent`） |
 | **父项目** | `io.github.yuku123:z-boot-parent:1.2.6`，`<relativePath/>` 留空（parent 在 repo1，不在磁盘）；第三方地板与兄弟仓权威表均已并入 parent 自身（`z-boot-dependencies` / `z-boot-fleet` 两个文件夹随 2026-10-08 火车制拓扑退役） |
-| **Maven Central** | 已发布：`z-ext:1.0.0` pom 200（2026-09-30）；`z-ext-core` 1.0.0 与 **1.0.1**（2026-10-23，repo1 `maven-metadata` latest=release=`1.0.1`）。本仓的 **1.2.4 尚未发布到 Central**（本地 `~/.m2` 与内网 Nexus 已供给）。404 未发布：`z-ext-web`（被 `central` profile 的 `excludeArtifacts` 点名排除）、`z-ext-frontend`（不在 reactor）、旧 namespace `com.zifang:z-ext` / `com.zifang:z-ext-core` |
+| **Maven Central** | 已发布：`z-ext:1.0.0` pom 200（2026-09-30）；`z-ext-core` 1.0.0 与 **1.0.1**（2026-10-23，repo1 `maven-metadata` latest=release=`1.0.1`）。本仓的 **1.2.6 尚未发布到 Central**（本地 `~/.m2` 与内网 Nexus 已供给）。404 未发布：`z-ext-web`（被 `central` profile 的 `excludeArtifacts` 点名排除）、`z-ext-frontend`（不在 reactor）、旧 namespace `com.zifang:z-ext` / `com.zifang:z-ext-core` |
 | **默认端口** | 库本体（z-ext-core / starter）无 —— `z-ext-core` 连 Boot 都不依赖；唯一启 HTTP 服务的是 `z-ext-admin` 控制台，监听 `8888`（`z-ext-admin/src/main/resources/application.yml` 实测 `server.port=8888`）。前端 dev server 监听 `3003`，把 `/api` 代理到 `http://localhost:8888`（控制台或宿主应用） |
 | **运行口径** | Java 17（**当前生效**：`z-boot-parent:1.2.6` 下发 `maven.compiler.source/target=17` 与 `-parameters`）· Spring Boot 地板 `3.5.16`（BOM 口径，实测 `spring-boot.version`）；`z-ext-core` 只依赖 spring-context/beans/core/expression，**不依赖 Spring Boot**（仅 test scope 引 `spring-boot-starter-test`）。根 POM 注释里残留的 `source/target=8` / `spring-boot-maven-plugin 2.7.12` 是 parent 升级前（1.0.19 时代）的历史口径，已不生效 |
 | **许可证** | MIT（根 [`LICENSE`](LICENSE) 为 MIT 全文，根 POM `<licenses>` 声明 MIT License） |
@@ -93,6 +93,8 @@
 
 直连通道的实现见 `ExtConsoleRegistrar`（starter）：登记失败只记日志，不拖挂启动；
 对外地址默认取本机站点地址 + 实际端口（`z.ext.console.base-url` 可覆盖）。
+登记失败会**退避重试**（5s / 15s / 30s / 60s，跑在守护线程上）：控制台晚起于实例时，
+实例仍会自动出现在控制台里，不必重启；容器关闭即停重试。
 
 ### ① 零侵入预置（引依赖即生效）
 
@@ -157,7 +159,7 @@ curl -X POST http://<host>:<port>/api/ext/implementations/mock \
 
 ```
 z-ext/
-├── pom.xml                 聚合 + 发布 POM：parent z-boot-parent:1.2.6、version 1.2.4、
+├── pom.xml                 聚合 + 发布 POM：parent z-boot-parent:1.2.6、version 1.2.6、
 │                           <modules> = z-ext-core + z-ext-spring-boot-starter + z-ext-admin + z-ext-web（_frontend 已注释）、central profile
 ├── LICENSE                 MIT 全文
 ├── README.md               本文档
@@ -212,7 +214,7 @@ mvn spring-boot:run -pl z-ext-admin   # 起控制台（8888），先 export ZEXT
 
 ### 作为依赖引入
 
-Central 上最新已发布版本是 `z-ext-core:1.0.1`（本仓 1.2.4 未发 Central，发布前用本地 `mvn install`）：
+Central 上最新已发布版本是 `z-ext-core:1.0.1`（本仓 1.2.6 未发 Central，发布前用本地 `mvn install`）：
 
 ```xml
 <!-- 纯库用法（JVM 内扩展点路由） -->
@@ -226,7 +228,7 @@ Central 上最新已发布版本是 `z-ext-core:1.0.1`（本仓 1.2.4 未发 Cen
 <dependency>
     <groupId>io.github.yuku123</groupId>
     <artifactId>z-ext-spring-boot-starter</artifactId>
-    <version>1.2.4</version>
+    <version>1.2.6</version>
 </dependency>
 ```
 
@@ -342,7 +344,7 @@ mvn -pl z-ext-core test # 只要核心
 
 实测的测试类（按模块）：
 
-- `z-ext-core/src/test/java/com/zifang/z/ext/`：`ExtRegistryTest`、`ExtRouterTest`、`ExtProxyFactoryTest`、`ExtInvocationHandlerTest`、`ExtIntegrationTest`、`ScriptBackedImplNamingTest`、`ReadmeClaimsTest`、`EnableExtIntegrationTest`，1.1.0 新增 `LocalActiveImplStoreTest`、`DefaultExtAdminProviderTest`、`ExtConditionRoutingTest`、`ExtAsyncExecutionTest`、`ExtChainIsolationTest`（CHAIN 失败隔离：单实现失败继续跑后续、异常不上抛）、`ExtExternalRpcE2ETest`（EXTERNAL 实现经 z-rpc netty 真连接打对端并拿回结果/异常），1.2.0 新增 `preset/PresetRegistrarTest`（预置点注册幂等）、`mock/MockExtImplFactoryTest`（mock 固定返回/抛错/恒拒绝）、`adapter/ExtAdapterRegistrarTest`（既有 Bean 适配成实现后可直接切换）；starter 侧 1.2.0 新增 `preset/PresetGateAutoConfigurationTest`（引依赖即有可被操控的点）、`preset/PresetGateInterceptorTest`（HTTP 闸门放行/503 拒绝/失败放行）、`aop/ExtHookAutoConfigurationTest`（`@ExtHook` 织入后结果被扩展点改写）、`console/ExtConsoleRegistrarTest`（启动登记/关闭注销/控制台不可达不拖挂启动）；`test/` 下另备 `OrderService` + PLATFORM/CUSTOM 两个实现与一个 `@ExtPoint` 标注的 `PaymentService` 作夹具，`enableext/` 下另备 `@EnableExt` 两个分支专用的配置类与 `@ExtPoint`/`@ExtImpl` 夹具。
+- `z-ext-core/src/test/java/com/zifang/z/ext/`：`ExtRegistryTest`、`ExtRouterTest`、`ExtProxyFactoryTest`、`ExtInvocationHandlerTest`、`ExtIntegrationTest`、`ScriptBackedImplNamingTest`、`ReadmeClaimsTest`、`EnableExtIntegrationTest`，1.1.0 新增 `LocalActiveImplStoreTest`、`DefaultExtAdminProviderTest`、`ExtConditionRoutingTest`、`ExtAsyncExecutionTest`、`ExtChainIsolationTest`（CHAIN 失败隔离：单实现失败继续跑后续、异常不上抛）、`ExtExternalRpcE2ETest`（EXTERNAL 实现经 z-rpc netty 真连接打对端并拿回结果/异常），1.2.0 新增 `preset/PresetRegistrarTest`（预置点注册幂等）、`mock/MockExtImplFactoryTest`（mock 固定返回/抛错/恒拒绝）、`adapter/ExtAdapterRegistrarTest`（既有 Bean 适配成实现后可直接切换）；starter 侧 1.2.0 新增 `preset/PresetGateAutoConfigurationTest`（引依赖即有可被操控的点）、`preset/PresetGateInterceptorTest`（HTTP 闸门放行/503 拒绝/失败放行）、`aop/ExtHookAutoConfigurationTest`（`@ExtHook` 织入后结果被扩展点改写）、`console/ExtConsoleRegistrarTest`（启动登记/关闭注销/控制台不可达不拖挂启动/控制台晚起时退避重试补登记/关闭后停重试）；`test/` 下另备 `OrderService` + PLATFORM/CUSTOM 两个实现与一个 `@ExtPoint` 标注的 `PaymentService` 作夹具，`enableext/` 下另备 `@EnableExt` 两个分支专用的配置类与 `@ExtPoint`/`@ExtImpl` 夹具。
 - `z-ext-spring-boot-starter`：`ZExtAutoConfigurationTest`（装配面：默认 Bean、store 装进 ExtRegistry、实例回填、控制面开关）+ `ExtAdminControllerTest`（MockMvc 打嵌入式控制面的全部端点）。
 - `z-ext-admin`：`ZExtAdminApplicationTest`（RANDOM_PORT 端到端：登录 → 令牌 → 本机控制面 → 把自己注册成实例的自环代理）。
 - `z-ext-web` / `_frontend` 无测试。

@@ -15,6 +15,10 @@ import java.net.NetworkInterface;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 实例向控制台自登记 —— 让「自动可被操控」不依赖任何中间注册中心。
@@ -28,10 +32,17 @@ import java.util.Enumeration;
  * 这里走一条直连通道：控制台与实例之间网络可达即可，登记信息只含服务名与地址。
  * <p>
  * <b>失败不拖挂启动</b>：控制台没起来、地址写错、网络不通，都只记日志。
+ * <p>
+ * <b>登记失败会退避重试</b>：实例与控制台不一定同时起来 —— 控制台晚起时，
+ * 首登拿连接拒绝是常态，不重试就等于这个实例在控制台里永远缺席（除非重启）。
+ * 重试跑在守护线程上，不占启动线程，也不拖慢就绪。
  */
 public class ExtConsoleRegistrar implements ApplicationListener<WebServerInitializedEvent> {
 
     private static final Logger log = LogManager.getLogger(ExtConsoleRegistrar.class);
+
+    /** 默认退避间隔（毫秒）：控制台晚起/网络抖动时的重试节奏。 */
+    static final long[] DEFAULT_RETRY_DELAYS_MS = {5000L, 15000L, 30000L, 60000L};
 
     /** 控制台地址。 */
     private final String consoleUrl;
@@ -48,8 +59,17 @@ public class ExtConsoleRegistrar implements ApplicationListener<WebServerInitial
     /** 登记令牌（空则不带；控制台未配置同款令牌时登记会被拒）。 */
     private final String regToken;
 
+    /** 重试退避间隔（毫秒）。 */
+    private final long[] retryDelaysMs;
+
     /** 登记上去的实例名（注销时用）。 */
     private volatile String registeredName;
+
+    /** 容器已关闭（停止重试）。 */
+    private volatile boolean closed;
+
+    /** 重试调度器（首次失败时懒建）。 */
+    private volatile ScheduledExecutorService scheduler;
 
     public ExtConsoleRegistrar(String consoleUrl, String instanceName, String baseUrlOverride, int timeoutMs) {
         this(consoleUrl, instanceName, baseUrlOverride, timeoutMs, null);
@@ -57,11 +77,17 @@ public class ExtConsoleRegistrar implements ApplicationListener<WebServerInitial
 
     public ExtConsoleRegistrar(String consoleUrl, String instanceName, String baseUrlOverride,
                                int timeoutMs, String regToken) {
+        this(consoleUrl, instanceName, baseUrlOverride, timeoutMs, regToken, DEFAULT_RETRY_DELAYS_MS);
+    }
+
+    public ExtConsoleRegistrar(String consoleUrl, String instanceName, String baseUrlOverride,
+                               int timeoutMs, String regToken, long[] retryDelaysMs) {
         this.consoleUrl = trimTrailingSlash(consoleUrl);
         this.instanceName = instanceName;
         this.baseUrlOverride = baseUrlOverride;
         this.timeoutMs = timeoutMs;
         this.regToken = regToken;
+        this.retryDelaysMs = retryDelaysMs == null ? new long[0] : retryDelaysMs.clone();
     }
 
     @Override
@@ -70,7 +96,7 @@ public class ExtConsoleRegistrar implements ApplicationListener<WebServerInitial
     }
 
     /**
-     * 登记到控制台。
+     * 登记到控制台；失败则安排退避重试。
      *
      * @param port 本实例对外端口
      */
@@ -79,21 +105,78 @@ public class ExtConsoleRegistrar implements ApplicationListener<WebServerInitial
                 ? trimTrailingSlash(baseUrlOverride)
                 : "http://" + localAddress() + ":" + port;
         String name = instanceName == null || instanceName.isBlank() ? "unknown" : instanceName.trim();
+        if (attemptRegister(name, baseUrl)) {
+            return;
+        }
+        scheduleRetry(name, baseUrl, 0);
+    }
+
+    /**
+     * 登记一次；成功返回 true。
+     */
+    private boolean attemptRegister(String name, String baseUrl) {
         try {
             String response = call("POST", "/api/ext/instances",
                     "{\"name\":\"" + escape(name) + "\",\"baseUrl\":\"" + escape(baseUrl) + "\"}");
             registeredName = name;
             log.info("实例已向控制台登记：name={} baseUrl={} 控制台={} resp={}", name, baseUrl, consoleUrl, response);
+            return true;
         } catch (Exception e) {
             log.warn("实例向控制台登记失败（不影响启动）：name={} baseUrl={} 控制台={} err={}",
                     name, baseUrl, consoleUrl, e.toString());
+            return false;
         }
+    }
+
+    /**
+     * 退避重试登记：失败一次排下一次，间隔逐次拉长；容器关闭即停。
+     */
+    private void scheduleRetry(String name, String baseUrl, int attempt) {
+        if (closed) {
+            return;
+        }
+        if (attempt >= retryDelaysMs.length) {
+            log.warn("实例向控制台登记最终失败（控制台始终不可达），需重启实例或手动登记：name={} 控制台={}",
+                    name, consoleUrl);
+            return;
+        }
+        long delay = retryDelaysMs[attempt];
+        try {
+            scheduler().schedule(() -> {
+                if (closed) {
+                    return;
+                }
+                if (attemptRegister(name, baseUrl)) {
+                    log.info("退避重试后登记成功：name={} baseUrl={} 控制台={}", name, baseUrl, consoleUrl);
+                    return;
+                }
+                scheduleRetry(name, baseUrl, attempt + 1);
+            }, delay, TimeUnit.MILLISECONDS);
+        } catch (RejectedExecutionException e) {
+            log.debug("容器已关闭，停止登记重试：name={}", name);
+        }
+    }
+
+    private synchronized ScheduledExecutorService scheduler() {
+        if (scheduler == null) {
+            scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+                Thread thread = new Thread(runnable, "z-ext-console-registrar");
+                thread.setDaemon(true);
+                return thread;
+            });
+        }
+        return scheduler;
     }
 
     /**
      * 容器关闭时注销。
      */
     public void unregister() {
+        closed = true;
+        ScheduledExecutorService current = scheduler;
+        if (current != null) {
+            current.shutdownNow();
+        }
         String name = registeredName;
         if (name == null) {
             return;
