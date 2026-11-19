@@ -95,6 +95,12 @@
         <module>z-ext-web</module>
     </modules>
 
+    <properties>
+        <!-- 注:本仓刻意不设其他版本键(口径由 parent 下发,见下方注释),这一格只为
+             z-meta-starter 的 ${z-meta.version} 解析服务(与 z-biz/z-config/z-ops/z-trade 同款)。 -->
+        <z-meta.version>1.0.2</z-meta.version>
+    </properties>
+
     <!-- 版本口径全部由 parent 下发（实测 parent 的父级 z-boot-dependencies 1.0.18→1.0.19
          逐条比过：直接 DM 面值 0 处变化、五条 import 面值一模一样，只掉了 3 条 z-graph 格，
          本仓不引用）。所以这里没有 <properties> 了：
