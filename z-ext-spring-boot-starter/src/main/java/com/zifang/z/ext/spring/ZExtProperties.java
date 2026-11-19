@@ -30,6 +30,8 @@ public class ZExtProperties {
 
     private final Preset preset = new Preset();
 
+    private final Console console = new Console();
+
     public boolean isAdminEnabled() {
         return adminEnabled;
     }
@@ -63,6 +65,90 @@ public class ZExtProperties {
      */
     public Preset getPreset() {
         return preset;
+    }
+
+    /**
+     * 向控制台登记本实例。
+     */
+    public Console getConsole() {
+        return console;
+    }
+
+    /**
+     * 实例向控制台自登记。
+     * <p>
+     * 控制面要能「看见并操控」实例，前提是知道实例在哪儿。
+     * 这条通道让实例启动时把自己登记到控制台、退出时注销 ——
+     * 不依赖任何中间注册中心，因此控制台与实例之间只要网络通就能用。
+     */
+    public static class Console {
+
+        /**
+         * 是否开启自登记。
+         * <p>
+         * 默认关：登记地址是环境相关的，交给部署侧显式开启。
+         */
+        private boolean enabled = false;
+
+        /**
+         * 控制台地址（如 {@code http://192.168.31.136:8888}）。
+         */
+        private String url;
+
+        /**
+         * 实例名（缺省取 {@code spring.application.name}）。
+         */
+        private String instanceName;
+
+        /**
+         * 对外暴露的地址覆盖（缺省按本机站点地址 + 端口推）。
+         */
+        private String baseUrl;
+
+        /**
+         * 连接/读超时（毫秒）。
+         */
+        private int timeoutMs = 3000;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
+        public String getInstanceName() {
+            return instanceName;
+        }
+
+        public void setInstanceName(String instanceName) {
+            this.instanceName = instanceName;
+        }
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public int getTimeoutMs() {
+            return timeoutMs;
+        }
+
+        public void setTimeoutMs(int timeoutMs) {
+            this.timeoutMs = timeoutMs;
+        }
     }
 
     /**
