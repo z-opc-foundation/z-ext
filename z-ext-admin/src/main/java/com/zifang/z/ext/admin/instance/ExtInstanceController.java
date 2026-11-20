@@ -1,5 +1,8 @@
 package com.zifang.z.ext.admin.instance;
 
+import com.zifang.z.meta.api.annotation.BizApi;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizParam;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -44,12 +47,14 @@ public class ExtInstanceController {
     }
 
     @GetMapping
+    @BizApi(summary = "listInstances", description = "", tags = { "z-ext" })
     public Map<String, Object> listInstances() {
         return ok(registry.list());
     }
 
     @PostMapping
-    public Map<String, Object> register(@RequestBody Map<String, String> body) {
+    @BizApi(summary = "register", description = "", tags = { "z-ext" })
+    public Map<String, Object> register(@RequestBody @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, String> body) {
         try {
             registry.register(body == null ? null : body.get("name"),
                     body == null ? null : body.get("baseUrl"));
@@ -60,40 +65,52 @@ public class ExtInstanceController {
     }
 
     @DeleteMapping("/{name}")
-    public Map<String, Object> unregister(@PathVariable String name) {
+    @BizApi(summary = "unregister", description = "", tags = { "z-ext" })
+    public Map<String, Object> unregister(@PathVariable @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String name) {
         registry.unregister(name);
         return ok(registry.list());
     }
 
     @GetMapping("/{name}/points")
-    public Map<String, Object> points(@PathVariable String name,
-                                      @RequestHeader(value = "Authorization", required = false) String auth) {
+    @BizApi(summary = "points", description = "", tags = { "z-ext" })
+    public Map<String, Object> points(@PathVariable @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String name,
+                                      @RequestHeader(value = "Authorization", required = false)
+                                      @BizParam(name = "Authorization", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.HEADER) String auth) {
         return forward(name, HttpMethod.GET, "/api/ext/points", null, auth);
     }
 
     @GetMapping("/{name}/implementations")
-    public Map<String, Object> implementations(@PathVariable String name,
-                                               @RequestHeader(value = "Authorization", required = false) String auth) {
+    @BizApi(summary = "implementations", description = "", tags = { "z-ext" })
+    public Map<String, Object> implementations(@PathVariable @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String name,
+                                               @RequestHeader(value = "Authorization", required = false)
+                                               @BizParam(name = "Authorization", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.HEADER) String auth) {
         return forward(name, HttpMethod.GET, "/api/ext/implementations", null, auth);
     }
 
     @PostMapping("/{name}/points/{point}/activate")
-    public Map<String, Object> activate(@PathVariable String name, @PathVariable String point,
-                                        @RequestBody(required = false) Map<String, Object> body,
-                                        @RequestHeader(value = "Authorization", required = false) String auth) {
+    @BizApi(summary = "activate", description = "", tags = { "z-ext" })
+    public Map<String, Object> activate(@PathVariable @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String name, @PathVariable @BizParam(name = "point", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String point,
+                                        @RequestBody(required = false)
+                                        @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, Object> body,
+                                        @RequestHeader(value = "Authorization", required = false)
+                                        @BizParam(name = "Authorization", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.HEADER) String auth) {
         return forward(name, HttpMethod.POST, "/api/ext/points/" + point + "/activate", body, auth);
     }
 
     @DeleteMapping("/{name}/points/{point}/activate")
-    public Map<String, Object> deactivate(@PathVariable String name, @PathVariable String point,
-                                          @RequestHeader(value = "Authorization", required = false) String auth) {
+    @BizApi(summary = "deactivate", description = "", tags = { "z-ext" })
+    public Map<String, Object> deactivate(@PathVariable @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String name, @PathVariable @BizParam(name = "point", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String point,
+                                          @RequestHeader(value = "Authorization", required = false)
+                                          @BizParam(name = "Authorization", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.HEADER) String auth) {
         return forward(name, HttpMethod.DELETE, "/api/ext/points/" + point + "/activate", null, auth);
     }
 
     @PostMapping("/{name}/implementations")
-    public Map<String, Object> registerImpl(@PathVariable String name,
-                                            @RequestBody Map<String, Object> body,
-                                            @RequestHeader(value = "Authorization", required = false) String auth) {
+    @BizApi(summary = "registerImpl", description = "", tags = { "z-ext" })
+    public Map<String, Object> registerImpl(@PathVariable @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String name,
+                                            @RequestBody @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, Object> body,
+                                            @RequestHeader(value = "Authorization", required = false)
+                                            @BizParam(name = "Authorization", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.HEADER) String auth) {
         return forward(name, HttpMethod.POST, "/api/ext/implementations", body, auth);
     }
 
@@ -101,9 +118,11 @@ public class ExtInstanceController {
      * 给目标实例注入 mock 实现（「零代码接管」的操作口）。
      */
     @PostMapping("/{name}/implementations/mock")
-    public Map<String, Object> injectMock(@PathVariable String name,
-                                          @RequestBody Map<String, Object> body,
-                                          @RequestHeader(value = "Authorization", required = false) String auth) {
+    @BizApi(summary = "给目标实例注入 mock 实现（「零代码接管」的操作口）", description = "给目标实例注入 mock 实现（「零代码接管」的操作口）。", tags = { "z-ext" })
+    public Map<String, Object> injectMock(@PathVariable @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String name,
+                                          @RequestBody @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, Object> body,
+                                          @RequestHeader(value = "Authorization", required = false)
+                                          @BizParam(name = "Authorization", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.HEADER) String auth) {
         return forward(name, HttpMethod.POST, "/api/ext/implementations/mock", body, auth);
     }
 
@@ -111,9 +130,11 @@ public class ExtInstanceController {
      * 把目标实例里的既有 Bean 现场适配成扩展点实现。
      */
     @PostMapping("/{name}/adapters")
-    public Map<String, Object> adapt(@PathVariable String name,
-                                      @RequestBody Map<String, Object> body,
-                                      @RequestHeader(value = "Authorization", required = false) String auth) {
+    @BizApi(summary = "把目标实例里的既有 Bean 现场适配成扩展点实现", description = "把目标实例里的既有 Bean 现场适配成扩展点实现。", tags = { "z-ext" })
+    public Map<String, Object> adapt(@PathVariable @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String name,
+                                      @RequestBody @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, Object> body,
+                                      @RequestHeader(value = "Authorization", required = false)
+                                      @BizParam(name = "Authorization", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.HEADER) String auth) {
         return forward(name, HttpMethod.POST, "/api/ext/adapters", body, auth);
     }
 
@@ -121,21 +142,27 @@ public class ExtInstanceController {
      * 列出目标实例里可适配的 Bean。
      */
     @GetMapping("/{name}/adapters")
-    public Map<String, Object> adapters(@PathVariable String name,
-                                        @RequestHeader(value = "Authorization", required = false) String auth) {
+    @BizApi(summary = "列出目标实例里可适配的 Bean", description = "列出目标实例里可适配的 Bean。", tags = { "z-ext" })
+    public Map<String, Object> adapters(@PathVariable @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String name,
+                                        @RequestHeader(value = "Authorization", required = false)
+                                        @BizParam(name = "Authorization", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.HEADER) String auth) {
         return forward(name, HttpMethod.GET, "/api/ext/adapters", null, auth);
     }
 
     @PutMapping("/{name}/implementations/{id}")
-    public Map<String, Object> updateImpl(@PathVariable String name, @PathVariable String id,
-                                          @RequestBody Map<String, Object> body,
-                                          @RequestHeader(value = "Authorization", required = false) String auth) {
+    @BizApi(summary = "updateImpl", description = "", tags = { "z-ext" })
+    public Map<String, Object> updateImpl(@PathVariable @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String name, @PathVariable @BizParam(name = "id", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String id,
+                                          @RequestBody @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, Object> body,
+                                          @RequestHeader(value = "Authorization", required = false)
+                                          @BizParam(name = "Authorization", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.HEADER) String auth) {
         return forward(name, HttpMethod.PUT, "/api/ext/implementations/" + id, body, auth);
     }
 
     @DeleteMapping("/{name}/implementations/{id}")
-    public Map<String, Object> deleteImpl(@PathVariable String name, @PathVariable String id,
-                                          @RequestHeader(value = "Authorization", required = false) String auth) {
+    @BizApi(summary = "deleteImpl", description = "", tags = { "z-ext" })
+    public Map<String, Object> deleteImpl(@PathVariable @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String name, @PathVariable @BizParam(name = "id", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String id,
+                                          @RequestHeader(value = "Authorization", required = false)
+                                          @BizParam(name = "Authorization", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.HEADER) String auth) {
         return forward(name, HttpMethod.DELETE, "/api/ext/implementations/" + id, null, auth);
     }
 
@@ -197,3 +224,12 @@ public class ExtInstanceController {
         return body;
     }
 }
+
+
+
+
+
+
+
+
+

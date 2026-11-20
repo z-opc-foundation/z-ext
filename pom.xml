@@ -196,6 +196,11 @@
                  唯一消费者 z-ext-admin 不在任何 reactor 里（<modules> 只有 z-ext-core / _frontend /
                  z-ext-web，见 phantom_dep_census 的 reactor 口径），它的依赖声明已跟着换成
                  io.github.yuku123 那条；留着这格就是给 repo1 上永远 404 的坐标做登记。 -->
+            <dependency>
+                <groupId>io.github.yuku123</groupId>
+                <artifactId>z-meta-api</artifactId>
+                <version>${z-meta.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>

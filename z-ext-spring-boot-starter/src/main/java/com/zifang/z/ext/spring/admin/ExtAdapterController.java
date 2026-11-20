@@ -3,6 +3,9 @@ package com.zifang.z.ext.spring.admin;
 import com.zifang.z.ext.adapter.ExtAdapter;
 import com.zifang.z.ext.adapter.ExtAdapterRegistrar;
 import com.zifang.z.ext.core.registry.ExtRegistry;
+import com.zifang.z.meta.api.annotation.BizApi;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizParam;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -41,7 +44,8 @@ public class ExtAdapterController {
      * {@code name} 是适配后的实现名（留空取类名首字母小写）。
      */
     @PostMapping("/adapters")
-    public Map<String, Object> adapt(@RequestBody Map<String, Object> body) {
+    @BizApi(summary = "适配一个既有 Bean", description = "适配一个既有 Bean。 请求体：{point, bean, name}；bean 是容器里的 Bean 名， name 是适配后的实现名（留空取类名首字母小写）。", tags = { "z-ext" })
+    public Map<String, Object> adapt(@RequestBody @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, Object> body) {
         String point = str(body, "point");
         String beanName = str(body, "bean");
         if (point == null || point.isBlank() || beanName == null || beanName.isBlank()) {
@@ -65,6 +69,7 @@ public class ExtAdapterController {
      * 列出宿主里所有带 {@link ExtAdapter} 的 Bean（还没被适配的也能看到，方便控制台指认）。
      */
     @GetMapping("/adapters")
+    @BizApi(summary = "列出宿主里所有带 ExtAdapter 的 Bean（还没被适配的也能看到，方便控制台指认）", description = "列出宿主里所有带 ExtAdapter 的 Bean（还没被适配的也能看到，方便控制台指认）。", tags = { "z-ext" })
     public Map<String, Object> list() {
         List<Map<String, Object>> items = new ArrayList<>();
         for (String name : applicationContext.getBeanDefinitionNames()) {
@@ -125,3 +130,12 @@ public class ExtAdapterController {
         return result;
     }
 }
+
+
+
+
+
+
+
+
+

@@ -4,6 +4,9 @@ import com.zifang.z.ext.core.registry.ExtPointDefinition;
 import com.zifang.z.ext.core.registry.ExtRegistry;
 import com.zifang.z.ext.mock.MockExtImplFactory;
 import com.zifang.z.ext.mock.MockSpec;
+import com.zifang.z.meta.api.annotation.BizApi;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,7 +34,8 @@ public class ExtMockController {
      * —— {@code behavior} 取 {@code RETURN} / {@code THROW} / {@code DENY}。
      */
     @PostMapping("/implementations/mock")
-    public Map<String, Object> injectMock(@RequestBody Map<String, Object> body) {
+    @BizApi(summary = "注入 mock 实现", description = "注入 mock 实现。 请求体：{point, name, behavior, result, errorMessage, delayMs} —— behavior 取 RETURN / THROW / DENY。", tags = { "z-ext" })
+    public Map<String, Object> injectMock(@RequestBody @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, Object> body) {
         String point = str(body, "point");
         String name = str(body, "name");
         if (point == null || point.isBlank() || name == null || name.isBlank()) {
@@ -92,3 +96,12 @@ public class ExtMockController {
         return result;
     }
 }
+
+
+
+
+
+
+
+
+

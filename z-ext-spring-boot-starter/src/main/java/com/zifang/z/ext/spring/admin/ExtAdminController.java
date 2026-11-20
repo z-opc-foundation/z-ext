@@ -9,6 +9,9 @@ import com.zifang.z.ext.core.admin.ExtSnapshot;
 import com.zifang.z.ext.core.registry.ExtImplDefinition;
 import com.zifang.z.ext.core.registry.ExtPointDefinition;
 import com.zifang.z.ext.core.registry.ExtRegistry;
+import com.zifang.z.meta.api.annotation.BizApi;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizParam;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,12 +48,14 @@ public class ExtAdminController {
     // ==================== 查询 ====================
 
     @GetMapping("/points")
+    @BizApi(summary = "listPoints", description = "", tags = { "z-ext" })
     public Map<String, Object> listPoints() {
         return ok(snapshot().getPoints());
     }
 
     @GetMapping("/points/{point}")
-    public Map<String, Object> getPoint(@PathVariable String point) {
+    @BizApi(summary = "getPoint", description = "", tags = { "z-ext" })
+    public Map<String, Object> getPoint(@PathVariable @BizParam(name = "point", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String point) {
         for (ExtPointView view : snapshot().getPoints()) {
             if (point.equals(view.getPoint())) {
                 return ok(view);
@@ -60,6 +65,7 @@ public class ExtAdminController {
     }
 
     @GetMapping("/implementations")
+    @BizApi(summary = "listImplementations", description = "", tags = { "z-ext" })
     public Map<String, Object> listImplementations() {
         List<ExtImplView> impls = new ArrayList<>();
         for (ExtPointView pointView : snapshot().getPoints()) {
@@ -71,7 +77,8 @@ public class ExtAdminController {
     // ==================== 扩展点管理 ====================
 
     @PostMapping("/points")
-    public Map<String, Object> registerPoint(@RequestBody Map<String, Object> body) {
+    @BizApi(summary = "registerPoint", description = "", tags = { "z-ext" })
+    public Map<String, Object> registerPoint(@RequestBody @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, Object> body) {
         String point = str(body, "point");
         if (point == null || point.isBlank()) {
             return fail(400, "point 不能为空");
@@ -91,8 +98,9 @@ public class ExtAdminController {
     }
 
     @PutMapping("/points/{point}")
-    public Map<String, Object> updatePoint(@PathVariable String point,
-                                           @RequestBody Map<String, Object> body) {
+    @BizApi(summary = "updatePoint", description = "", tags = { "z-ext" })
+    public Map<String, Object> updatePoint(@PathVariable @BizParam(name = "point", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String point,
+                                           @RequestBody @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, Object> body) {
         ExtPointDefinition definition = ExtRegistry.getPoint(point);
         if (definition == null) {
             return fail(404, "扩展点不存在: " + point);
@@ -110,7 +118,8 @@ public class ExtAdminController {
     }
 
     @DeleteMapping("/points/{point}")
-    public Map<String, Object> deletePoint(@PathVariable String point) {
+    @BizApi(summary = "deletePoint", description = "", tags = { "z-ext" })
+    public Map<String, Object> deletePoint(@PathVariable @BizParam(name = "point", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String point) {
         if (!ExtRegistry.unregisterPoint(point)) {
             return fail(404, "扩展点不存在: " + point);
         }
@@ -120,8 +129,9 @@ public class ExtAdminController {
     // ==================== 激活切换 ====================
 
     @PostMapping("/points/{point}/activate")
-    public Map<String, Object> activate(@PathVariable String point,
-                                        @RequestBody Map<String, Object> body) {
+    @BizApi(summary = "activate", description = "", tags = { "z-ext" })
+    public Map<String, Object> activate(@PathVariable @BizParam(name = "point", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String point,
+                                        @RequestBody @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, Object> body) {
         String implName = str(body, "implName");
         if (implName == null) {
             return fail(400, "implName 不能为空");
@@ -133,7 +143,8 @@ public class ExtAdminController {
     }
 
     @DeleteMapping("/points/{point}/activate")
-    public Map<String, Object> deactivate(@PathVariable String point) {
+    @BizApi(summary = "deactivate", description = "", tags = { "z-ext" })
+    public Map<String, Object> deactivate(@PathVariable @BizParam(name = "point", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String point) {
         if (!provider.deactivate(point)) {
             return fail(404, "扩展点不存在: " + point);
         }
@@ -143,7 +154,8 @@ public class ExtAdminController {
     // ==================== 实现管理 ====================
 
     @PostMapping("/implementations")
-    public Map<String, Object> registerImplementation(@RequestBody Map<String, Object> body) {
+    @BizApi(summary = "registerImplementation", description = "", tags = { "z-ext" })
+    public Map<String, Object> registerImplementation(@RequestBody @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, Object> body) {
         String point = str(body, "point");
         String name = str(body, "name");
         if (point == null || point.isBlank() || name == null || name.isBlank()) {
@@ -174,8 +186,9 @@ public class ExtAdminController {
     }
 
     @PutMapping("/implementations/{id}")
-    public Map<String, Object> updateImplementation(@PathVariable String id,
-                                                    @RequestBody Map<String, Object> body) {
+    @BizApi(summary = "updateImplementation", description = "", tags = { "z-ext" })
+    public Map<String, Object> updateImplementation(@PathVariable @BizParam(name = "id", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String id,
+                                                    @RequestBody @BizParam(name = "body", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, Object> body) {
         String point = str(body, "point");
         String name = str(body, "name");
         if (point == null || name == null) {
@@ -215,7 +228,8 @@ public class ExtAdminController {
     }
 
     @DeleteMapping("/implementations/{id}")
-    public Map<String, Object> deleteImplementation(@PathVariable String id) {
+    @BizApi(summary = "deleteImplementation", description = "", tags = { "z-ext" })
+    public Map<String, Object> deleteImplementation(@PathVariable @BizParam(name = "id", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String id) {
         int split = id.lastIndexOf(':');
         if (split < 0 || !ExtRegistry.unregisterImpl(id.substring(0, split), id.substring(split + 1))) {
             return fail(404, "实现不存在: " + id);
@@ -295,3 +309,12 @@ public class ExtAdminController {
         return body;
     }
 }
+
+
+
+
+
+
+
+
+

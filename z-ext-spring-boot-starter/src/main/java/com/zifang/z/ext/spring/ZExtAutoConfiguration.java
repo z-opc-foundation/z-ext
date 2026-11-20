@@ -8,8 +8,8 @@ import com.zifang.z.ext.core.router.ExtRouter;
 import com.zifang.z.ext.core.router.SpelConditionEvaluator;
 import com.zifang.z.ext.core.store.ActiveImplStore;
 import com.zifang.z.ext.core.store.LocalActiveImplStore;
-import com.zifang.z.ext.spring.admin.ExtAdminController;
 import com.zifang.z.ext.spring.admin.ExtAdapterController;
+import com.zifang.z.ext.spring.admin.ExtAdminController;
 import com.zifang.z.ext.spring.admin.ExtMockController;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -135,3 +135,6 @@ public class ZExtAutoConfiguration {
         }
     }
 }
+
+
+
