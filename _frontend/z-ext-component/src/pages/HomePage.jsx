@@ -11,7 +11,7 @@ export default function HomePage() {
     const [user, setUser] = useState(null)
 
     useEffect(() => {
-        const raw = localStorage.getItem('userInfo')
+        const raw = localStorage.getItem('zext_user')
         if (raw) { try { setUser(JSON.parse(raw)) } catch { setUser({ name: raw }) } }
     }, [])
 

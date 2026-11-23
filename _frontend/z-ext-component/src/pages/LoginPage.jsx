@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button, Card, Form, Input, message } from 'antd'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import request from '../services/request'
@@ -11,8 +11,17 @@ import request from '../services/request'
  */
 export default function LoginPage() {
     const [loading, setLoading] = useState(false)
+    const submitting = useRef(false)
+    const active = useRef(true)
+
+    useEffect(() => {
+        active.current = true
+        return () => { active.current = false }
+    }, [])
 
     const handleSubmit = async (values) => {
+        if (submitting.current) return
+        submitting.current = true
         setLoading(true)
         try {
             const res = await request.post('/auth/login', {
@@ -21,6 +30,10 @@ export default function LoginPage() {
             })
             // 后端返回裸 {token, user:{username}}（无包装），拦截器原样透传；
             // AppLayout 读 user.name，归一化成 {name}
+            if (!active.current) return
+            if (typeof res?.token !== 'string' || !res.token.trim()) {
+                throw new Error('登录响应缺少有效令牌')
+            }
             const user = res.user || {}
             localStorage.setItem('zext_token', res.token)
             localStorage.setItem('zext_user', JSON.stringify(
@@ -29,18 +42,19 @@ export default function LoginPage() {
             window.location.href = '/z-ext/home'
         } catch (e) {
             const msg = e?.response?.data?.message || e?.message || '登录失败'
-            message.error(msg)
+            if (active.current) message.error(msg)
         } finally {
-            setLoading(false)
+            submitting.current = false
+            if (active.current) setLoading(false)
         }
     }
 
     return (
         <div style={{
-            height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center',
+            minHeight: '100dvh', padding: 16, boxSizing: 'border-box', display: 'flex', justifyContent: 'center', alignItems: 'center',
             background: 'linear-gradient(135deg, #eef2ff 0%, #f5f3ff 50%, #eff6ff 100%)',
         }}>
-            <Card style={{ width: 400, boxShadow: '0 10px 40px rgba(124,58,237,0.12)' }}>
+            <Card style={{ width: '100%', maxWidth: 400, boxShadow: '0 10px 40px rgba(124,58,237,0.12)' }}>
                 <div style={{ textAlign: 'center', marginBottom: 20 }}>
                     <div style={{
                         width: 48, height: 48, borderRadius: 12, margin: '0 auto 12px',
@@ -50,7 +64,7 @@ export default function LoginPage() {
                     }}>z</div>
                     <div style={{ fontSize: 18, fontWeight: 600, color: '#0f172a' }}>z-ext 管理台</div>
                 </div>
-                <Form onFinish={handleSubmit} size="large">
+                <Form onFinish={handleSubmit} size="large" disabled={loading}>
                     <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
                         <Input prefix={<UserOutlined />} placeholder="用户名" />
                     </Form.Item>
@@ -63,9 +77,6 @@ export default function LoginPage() {
                             登 录
                         </Button>
                     </Form.Item>
-                    <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 12 }}>
-                        账号由部署侧环境变量注入（ZEXT_ADMIN_USERNAME / ZEXT_ADMIN_PASSWORD）
-                    </div>
                 </Form>
             </Card>
         </div>

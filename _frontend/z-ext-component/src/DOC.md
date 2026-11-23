@@ -17,7 +17,7 @@ z-ext（扩展点管理）跨仓唯一前端面：把「概览 / 扩展点管理
 
 | 页面 | 路由（相对 `/z-ext/*`） | 源文件 | 能力 |
 |------|--------------------------|--------|------|
-| 首页 | `home` | `pages/HomePage.jsx` | 读 `userInfo` 显示登录人，按 `menuItems` 渲染功能入口卡片 |
+| 首页 | `home` | `pages/HomePage.jsx` | 读 `zext_user` 显示登录人，按 `menuItems` 渲染功能入口卡片 |
 | 概览 | `dashboard` | `pages/Dashboard.jsx` | 扩展点数 / 实现数 / 激活实现 / 切换次数 + 最近活动 |
 | 扩展点管理 | `extension/list` | `pages/extension/ExtensionList.jsx` | 扩展点 CRUD + 切换实现 |
 | 实现管理 | `implementation/list` | `pages/implementation/ImplementationList.jsx` | 实现 CRUD + 启用开关 + 权重 |
@@ -71,7 +71,7 @@ token 存 `localStorage.zext_token`，用户信息存 `localStorage.zext_user`�
 
 ### 4.1 首页
 
-登录后的着陆页。读 `localStorage.userInfo` 显示欢迎语与角色标签，再把 `menuItems`（去掉首页自身）
+登录后的着陆页。读 `localStorage.zext_user` 显示欢迎语与角色标签，再把 `menuItems`（去掉首页自身）
 渲染成入口卡片 —— 菜单加一项，首页卡片自动多一张，不用改页面代码。
 
 ### 4.2 概览

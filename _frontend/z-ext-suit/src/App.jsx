@@ -41,8 +41,12 @@ function ProtectedShell() {
         <AppLayout
             menuItems={menuItems}
             appTitle="z-ext 扩展管理"
+            appShort="EXT"
             appVersion="1.1.0"
             appUser={user}
+            loginPath="/z-ext/login"
+            tokenKey="zext_token"
+            userInfoKey="zext_user"
             appIcon={{ icon: <img src="/icon.png" alt="z-ext 扩展管理" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />, color: '#ea580c', label: 'z-ext 扩展管理' }}
         />
     )
